@@ -1,0 +1,41 @@
+# Build
+build/
+cmake-build-*/
+*.exe
+*.dll
+*.lib
+*.a
+*.so
+*.o
+*.obj
+*.dylib
+
+# IDE
+.vs/
+.vscode/
+*.user
+*.suo
+*.sln
+*.vcxproj*
+.idea/
+*.swp
+*~
+
+# Output
+output/
+*.dat
+
+# Python
+__pycache__/
+*.pyc
+venv/
+*.egg-info/
+dist/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Config (may contain local paths)
+# config.json
