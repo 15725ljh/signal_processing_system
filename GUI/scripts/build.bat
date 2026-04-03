@@ -16,6 +16,8 @@ if not exist "%MODULE01_LIB%" (
     exit /b 1
 )
 
+if not exist lib mkdir lib
+
 g++ -O3 -std=c++17 -shared ^
     -I"%PYBIND_INC%" ^
     -I"%PYTHON_INC%" ^
@@ -23,7 +25,7 @@ g++ -O3 -std=c++17 -shared ^
     -I"%GUI_ROOT%\..\01_waveform_generation\include" ^
     "%GUI_ROOT%\..\01_waveform_generation\bindings\waveform_bind.cpp" ^
     "%MODULE01_LIB%" ^
-    -o waveform_cpp.pyd
+    -o lib\waveform_cpp.pyd
 
 if errorlevel 1 (
     echo [错误] C++ 编译失败

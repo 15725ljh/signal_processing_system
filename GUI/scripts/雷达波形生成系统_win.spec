@@ -16,7 +16,7 @@ import glob
 GUI_ROOT = SPECPATH + '/..'
 
 # 自动查找 .pyd 文件名（版本号因 Python 版本不同）
-cpp_module = glob.glob(GUI_ROOT + '/waveform_cpp*.pyd')
+cpp_module = glob.glob(GUI_ROOT + '/lib/waveform_cpp*.pyd')
 if not cpp_module:
     print("[错误] 未找到 waveform_cpp*.pyd，请先编译 C++ 绑定")
     print("       在 Developer Command Prompt 中运行: scripts\\build.bat")
@@ -25,7 +25,7 @@ if not cpp_module:
 print(f"[信息] C++ 模块: {cpp_module[0]}")
 
 # MinGW UCRT64 运行时 DLL (waveform_cpp.pyd 的依赖)
-mingw_dlls = [f for f in glob.glob(GUI_ROOT + '/lib*.dll')]
+mingw_dlls = [f for f in glob.glob(GUI_ROOT + '/lib/lib*.dll')]
 if not mingw_dlls:
     print("[警告] 未找到 lib*.dll MinGW 运行时, 打包后可能无法运行")
 binaries = [(cpp_module[0], '.')] + [(f, '.') for f in mingw_dlls]

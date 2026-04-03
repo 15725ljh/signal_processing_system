@@ -5,7 +5,7 @@ GUI_ROOT = SPECPATH + '/..'
 a = Analysis(
     [GUI_ROOT + '/app.py'],
     pathex=[],
-    binaries=[(GUI_ROOT + '/waveform_cpp.cpython-314-darwin.so', '.')],
+    binaries=[(GUI_ROOT + '/lib/waveform_cpp.cpython-314-darwin.so', '.')],
     datas=[(GUI_ROOT + '/ui', 'ui'), (GUI_ROOT + '/core', 'core'), (GUI_ROOT + '/assets', 'assets')],
     hiddenimports=['scipy.signal', 'scipy.fft', 'scipy', 'PySide6.QtWidgets', 'PySide6.QtCore', 'PySide6.QtGui', 'pyqtgraph', 'pyqtgraph.graphicsItems', 'pyqtgraph.exporters'],
     hookspath=[],

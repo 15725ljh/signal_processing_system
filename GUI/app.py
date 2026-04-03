@@ -13,6 +13,11 @@ def _assets_dir():
 def main():
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
+    # 将 lib/ 目录加入 sys.path, 以便 import waveform_cpp
+    _lib_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'lib')
+    if os.path.isdir(_lib_dir):
+        sys.path.insert(0, _lib_dir)
+
     from PySide6.QtWidgets import QApplication
     from PySide6.QtCore import Qt
     from PySide6.QtGui import QIcon, QPixmap

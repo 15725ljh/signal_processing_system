@@ -1,8 +1,10 @@
 venv/
 build/
 dist/
+lib/
 *.so
 *.pyd
+*.dll
 *.c
 __pycache__/
 *.pyc
