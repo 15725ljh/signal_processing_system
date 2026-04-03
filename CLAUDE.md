@@ -78,3 +78,10 @@ Located in `third_party/`: Eigen 3.4.0 (header-only), FFTW 3.3.10 (compiled), mi
 - Module 01's `waveform_core.cpp` is the exception — extracted shared code for GUI reuse.
 - Chinese comments are used extensively alongside English — preserve bilingual style when editing.
 - Module parameter headers (`parameters.h`) are duplicated across modules 01/02/04 rather than shared — maintain consistency when modifying.
+
+## GUI Platform Notes
+
+- **Build artifacts**: `GUI/lib/` contains `waveform_cpp.pyd/.so` and MinGW DLLs. `app.py` registers `lib/` in `sys.path` at startup. Directory is `.gitignore`d.
+- **Windows 11 taskbar icon**: Qt's native `setWindowIcon` is insufficient. The fix requires three elements together: (1) `SetCurrentProcessExplicitAppUserModelID` before window creation, (2) `SetClassLongPtrW(GCLP_HICONSM/HICON)` for class-level icon persistence, (3) `QTimer.singleShot(200, ...)` deferred call in `showEvent` to bypass Qt's internal icon reset. See `ui/main_window.py:_apply_win32_taskbar_icon()`.
+- **SVG export bug**: pyqtgraph 0.14.0 `SVGExporter` crashes on space-separated path coords. Patched in `venv/Lib/site-packages/pyqtgraph/exporters/SVGExporter.py`.
+- **Icon loading**: `assets/icon_b64.txt` stores base64-encoded PNG, loaded at runtime. `assets/app_icon.ico` used for Win32 API and PyInstaller exe icon.
