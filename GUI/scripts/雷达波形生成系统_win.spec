@@ -24,10 +24,16 @@ if not cpp_module:
 
 print(f"[信息] C++ 模块: {cpp_module[0]}")
 
+# MinGW UCRT64 运行时 DLL (waveform_cpp.pyd 的依赖)
+mingw_dlls = [f for f in glob.glob(GUI_ROOT + '/lib*.dll')]
+if not mingw_dlls:
+    print("[警告] 未找到 lib*.dll MinGW 运行时, 打包后可能无法运行")
+binaries = [(cpp_module[0], '.')] + [(f, '.') for f in mingw_dlls]
+
 a = Analysis(
     [GUI_ROOT + '/app.py'],
     pathex=[],
-    binaries=[(cpp_module[0], '.')],
+    binaries=binaries,
     datas=[
         (GUI_ROOT + '/ui', 'ui'),
         (GUI_ROOT + '/core', 'core'),
@@ -37,6 +43,7 @@ a = Analysis(
         'scipy.signal', 'scipy.fft', 'scipy',
         'PySide6.QtWidgets', 'PySide6.QtCore', 'PySide6.QtGui',
         'pyqtgraph', 'pyqtgraph.graphicsItems', 'pyqtgraph.exporters',
+        'assets',
     ],
     hookspath=[],
     hooksconfig={},
@@ -63,6 +70,7 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
+    icon=GUI_ROOT + '/assets/app_icon.ico',
 )
 coll = COLLECT(
     exe,

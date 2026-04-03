@@ -2,6 +2,7 @@ venv/
 build/
 dist/
 *.so
+*.pyd
 *.c
 __pycache__/
 *.pyc

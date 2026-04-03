@@ -10,6 +10,8 @@ if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release CACHE STRING "Choose the type of build." FORCE)
 endif()
 
+add_compile_definitions(_USE_MATH_DEFINES)  # Windows下启用M_PI等数学常量
+
 if(NOT PROJECT_ROOT_DIR)                # 独立构建时,设置项目根目录并加载库检测脚本
     set(PROJECT_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/..")
     include("${CMAKE_CURRENT_SOURCE_DIR}/../cmake/FindLibraries.cmake")

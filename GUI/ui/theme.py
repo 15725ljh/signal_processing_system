@@ -1,9 +1,21 @@
 import os
+import sys
 
 FONT_UI = '"PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif'
 FONT_MONO = '"Menlo", "PingFang SC", "Consolas", "SF Mono", monospace'
-_CHECK_SVG = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'assets', 'checkmark.svg')
-_CHEVRON_SVG = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'assets', 'chevron-down.svg')
+
+
+def _assets_dir():
+    """定位 assets 目录, 兼容 PyInstaller 打包和源码运行"""
+    if getattr(sys, 'frozen', False):
+        base = sys._MEIPASS
+    else:
+        base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    return os.path.join(base, 'assets')
+
+
+_CHECK_SVG = os.path.join(_assets_dir(), 'checkmark.svg').replace('\\', '/')
+_CHEVRON_SVG = os.path.join(_assets_dir(), 'chevron-down.svg').replace('\\', '/')
 
 # ── Plot theme palettes (used by plot_panel.py) ──
 PLOT_THEMES = {

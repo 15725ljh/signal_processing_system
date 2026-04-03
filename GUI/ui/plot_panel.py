@@ -1,4 +1,5 @@
 import os
+import sys
 import numpy as np
 import warnings
 from PySide6.QtWidgets import (
@@ -17,6 +18,10 @@ from ui.theme import PLOT_THEMES, WIDGET_THEMES
 # ── Module-level theme state ──
 _current_plot_theme = "light"
 
+# Windows 启用 OpenGL 加速渲染; macOS 已有 Metal 加速无需额外开启
+_USE_OPENGL = sys.platform == "win32"
+_AA = True  # OpenGL 模式下 GPU 处理抗锯齿无额外开销
+
 
 def apply_plot_theme(theme="light"):
     """Switch pyqtgraph global colors and update module state."""
@@ -26,8 +31,8 @@ def apply_plot_theme(theme="light"):
     pg.setConfigOptions(
         background=pt["pg_bg"],
         foreground=pt["pg_fg"],
-        antialias=True,
-        useOpenGL=False,
+        antialias=_AA,
+        useOpenGL=_USE_OPENGL,
         enableExperimental=True,
     )
 
@@ -865,7 +870,7 @@ class PlotPanel(QWidget):
             if ext == "svg":
                 from pyqtgraph.exporters import SVGExporter
                 if isinstance(widget, (ImagePlotWidget, STFTPlotWidget)):
-                    exporter = SVGExporter(widget._layout_widget)
+                    exporter = SVGExporter(widget._plot)
                 elif isinstance(widget, TimeDomainPlot):
                     exporter = SVGExporter(widget._pw.plotItem)
                 else:
@@ -874,7 +879,7 @@ class PlotPanel(QWidget):
             else:
                 from pyqtgraph.exporters import ImageExporter
                 if isinstance(widget, (ImagePlotWidget, STFTPlotWidget)):
-                    exporter = ImageExporter(widget._layout_widget)
+                    exporter = ImageExporter(widget._plot)
                 elif isinstance(widget, TimeDomainPlot):
                     exporter = ImageExporter(widget._pw.plotItem)
                 else:

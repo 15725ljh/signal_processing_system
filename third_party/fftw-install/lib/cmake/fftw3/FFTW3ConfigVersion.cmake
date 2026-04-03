@@ -1,5 +1,5 @@
 
-set (PACKAGE_VERSION "3.3.10")
+set (PACKAGE_VERSION "3.3.9")
 
 # Check whether the requested PACKAGE_FIND_VERSION is compatible
 if ("${PACKAGE_VERSION}" VERSION_LESS "${PACKAGE_FIND_VERSION}")

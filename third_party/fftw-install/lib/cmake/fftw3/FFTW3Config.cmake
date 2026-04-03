@@ -7,8 +7,8 @@ endif ()
 set (FFTW3_CONFIG_FILE "${CMAKE_CURRENT_LIST_FILE}")
 
 set (FFTW3_LIBRARIES fftw3)
-set (FFTW3_LIBRARY_DIRS /Users/alexlee/Desktop/code/signal_processing_system/third_party/fftw-install/lib)
-set (FFTW3_INCLUDE_DIRS /Users/alexlee/Desktop/code/signal_processing_system/third_party/fftw-install/include)
+set (FFTW3_LIBRARY_DIRS C:/Code/C++/signal_processing_system/third_party/fftw-install/lib)
+set (FFTW3_INCLUDE_DIRS C:/Code/C++/signal_processing_system/third_party/fftw-install/include)
 
 include ("${CMAKE_CURRENT_LIST_DIR}/FFTW3LibraryDepends.cmake")
 

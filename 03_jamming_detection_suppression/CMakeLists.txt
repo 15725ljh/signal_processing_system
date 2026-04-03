@@ -29,6 +29,8 @@ if(NOT CMAKE_BUILD_TYPE)                # 默认Release模式
     set(CMAKE_BUILD_TYPE Release CACHE STRING "Choose the type of build." FORCE)
 endif()
 
+add_compile_definitions(_USE_MATH_DEFINES)  # Windows下启用M_PI等数学常量
+
 # OpenMP多线程支持(可选,用于并行化STFT计算等密集操作)
 find_package(OpenMP)
 if(OpenMP_CXX_FOUND)

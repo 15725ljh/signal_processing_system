@@ -9,9 +9,9 @@ from PySide6.QtWidgets import (
     QStatusBar, QLabel, QWidget, QVBoxLayout, QProgressBar,
 )
 from PySide6.QtCore import Qt, QThread, Signal, QTimer, QSettings
-from PySide6.QtGui import QAction, QKeySequence, QFont
+from PySide6.QtGui import QAction, QKeySequence, QFont, QIcon
 
-from ui.theme import LIGHT_STYLE, DARK_STYLE
+from ui.theme import LIGHT_STYLE, DARK_STYLE, _assets_dir
 from ui.param_panel import ParamPanel
 from ui.plot_panel import PlotPanel, apply_plot_theme
 from ui.console_panel import ConsolePanel
@@ -125,7 +125,11 @@ class MainWindow(QMainWindow):
     def __init__(self, config_path=None):
         super().__init__()
         self.setWindowTitle("雷达波形生成系统 - 模块01")
+        icon_path = os.path.join(_assets_dir(), 'app_icon.ico')
+        if os.path.exists(icon_path):
+            self.setWindowIcon(QIcon(icon_path))
         self.setMinimumSize(1280, 800)
+        self._win32_icon_applied = False
         self.resize(1500, 920)
 
         self._config = ConfigManager()
@@ -251,7 +255,7 @@ class MainWindow(QMainWindow):
         self._right_splitter.addWidget(self._console_panel)
         self._right_splitter.setStretchFactor(0, 3)
         self._right_splitter.setStretchFactor(1, 1)
-        self._right_splitter.setSizes([620, 200])
+        self._right_splitter.setSizes([540, 280])
 
         self._main_splitter.addWidget(self._param_panel)
         self._main_splitter.addWidget(self._right_splitter)
@@ -541,7 +545,7 @@ class MainWindow(QMainWindow):
 
     def _reset_layout(self):
         self._main_splitter.setSizes([408, 1092])
-        self._right_splitter.setSizes([620, 200])
+        self._right_splitter.setSizes([540, 280])
 
     def _show_about(self):
         theme_label = "深色" if self._current_theme == "dark" else "浅色"
@@ -554,8 +558,69 @@ class MainWindow(QMainWindow):
             "固定跳频 / 随机相位 / PRI抖动\n"
             "混合波形 / 复合波形\n\n"
             f"当前主题: {theme_label}\n"
-            "技术栈: PySide6 + pyqtgraph + numpy/scipy",
+            "技术栈: PySide6 + pyqtgraph + numpy/scipy\n\n"
+            "作者: XDU_LJH",
         )
+
+    def _apply_win32_taskbar_icon(self):
+        """通过 Win32 API 设置窗口图标, 确保 Windows 11 任务栏正确显示。
+        同时设置窗口类图标 (SetClassLongPtrW) 和窗口图标 (WM_SETICON),
+        类图标比 WM_SETICON 更持久, 不易被 Qt 内部调用覆盖。"""
+        if sys.platform != 'win32':
+            return
+        try:
+            import ctypes
+            from ctypes import c_void_p, c_int, c_uint, c_wchar_p
+
+            user32 = ctypes.windll.user32
+
+            user32.LoadImageW.restype = c_void_p
+            user32.LoadImageW.argtypes = [c_void_p, c_wchar_p, c_uint, c_int, c_int, c_uint]
+            user32.SendMessageW.restype = c_void_p
+            user32.SendMessageW.argtypes = [c_void_p, c_uint, c_void_p, c_void_p]
+            user32.SetWindowPos.restype = c_int
+            user32.SetWindowPos.argtypes = [c_void_p, c_void_p, c_int, c_int, c_int, c_int, c_uint]
+
+            has_class_long = False
+            try:
+                user32.SetClassLongPtrW.restype = c_void_p
+                user32.SetClassLongPtrW.argtypes = [c_void_p, c_int, c_void_p]
+                has_class_long = True
+            except (AttributeError, OSError):
+                pass
+
+            hwnd = int(self.winId())
+            ico_path = os.path.join(_assets_dir(), 'app_icon.ico')
+            if not os.path.exists(ico_path):
+                return
+            win_path = os.path.abspath(ico_path).replace('/', '\\')
+
+            hicon_small = user32.LoadImageW(None, win_path, 1, 16, 16, 0x10)
+            hicon_big = user32.LoadImageW(None, win_path, 1, 32, 32, 0x10)
+
+            if hicon_small:
+                if has_class_long:
+                    user32.SetClassLongPtrW(hwnd, -34, hicon_small)
+                user32.SendMessageW(hwnd, 0x0080, 0, hicon_small)
+
+            if hicon_big:
+                if has_class_long:
+                    user32.SetClassLongPtrW(hwnd, -14, hicon_big)
+                user32.SendMessageW(hwnd, 0x0080, 1, hicon_big)
+
+            user32.SetWindowPos(hwnd, 0, 0, 0, 0, 0, 0x0002 | 0x0001 | 0x0004 | 0x0020)
+
+        except Exception:
+            pass
+
+    def showEvent(self, event):
+        super().showEvent(event)
+        if not self._win32_icon_applied:
+            self._win32_icon_applied = True
+            # 延迟执行: Qt 在 showEvent 之后可能内部重置图标,
+            # 用 QTimer.singleShot 确保 Win32 调用在 Qt 处理完毕后执行
+            from PySide6.QtCore import QTimer
+            QTimer.singleShot(200, self._apply_win32_taskbar_icon)
 
     def closeEvent(self, event):
         if self._compute_thread and self._compute_thread.isRunning():
