@@ -1,12 +1,13 @@
 <div align="center">
 
-# Radar Signal Processing System
+# Radar Signal Processing System (Windows)
 
 **雷达信号处理系统 — 波形生成 · 干扰模拟 · 检测抑制 · 信号处理**
 
 [![Language](https://img.shields.io/badge/C++-17-blue.svg)](https://isocpp.org/std/the-standard)
 [![Framework](https://img.shields.io/badge/CMake-3.14+-green.svg)](https://cmake.org/)
 [![GUI](https://img.shields.io/badge/GUI-PySide6-orange.svg)](https://doc.qt.io/qtforpython-6/)
+[![Platform](https://img.shields.io/badge/Platform-Windows_x64-0078D4.svg)](https://www.microsoft.com/windows)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 </div>
@@ -55,31 +56,31 @@
 - **高精度信号模型** — 采用 `frac(x)` 分数部分提取技术，避免 `fc·t ≈ 10⁶` 时的浮点精度丢失
 - **热配置** — 修改 `config.json` 即时生效，支持 `//` 和 `#` 行注释
 - **级联处理** — 模块间通过 `.dat` 文件传递数据，模块 02 支持 10 种干扰的级联叠加
-- **跨平台** — 支持 macOS / Linux / Windows (MSYS2)
+- **Windows 原生** — 针对 Windows x64 编译，内置 FFTW 源码，MSVC/MinGW 工具链
 - **GUI 界面** — PySide6 桌面应用，pybind11 直调 C++ 引擎，实时波形可视化
 - **轻量依赖** — 仅依赖 Eigen 和 FFTW 两个第三方库，JSON 解析和 Bessel 函数为自实现
 
 ## 快速开始
 
 ```bash
-# 1. 克隆仓库
-git clone https://github.com/15725ljh/signal_processing_system.git
+# 1. 克隆仓库 (Windows 分支)
+git clone -b feature/windows-gui https://github.com/15725ljh/signal_processing_system.git
 cd signal_processing_system
 
-# 2. 安装依赖 (macOS 示例)
-brew install eigen fftw
+# 2. 安装依赖
+#    Eigen: 解压至 third_party/eigen/
+#    FFTW:  已内置 third_party/fftw-3.3.10/ 源码，CMake 自动编译
 
-# 3. 构建各模块（独立构建）
-cd 01_waveform_generation && mkdir -p build && cd build && cmake .. && cmake --build . -j$(sysctl -n hw.ncpu)
-cd ../../02_jamming_generation && mkdir -p build && cd build && cmake .. && cmake --build . -j$(sysctl -n hw.ncpu)
-cd ../../03_jamming_detection_suppression && mkdir -p build && cd build && cmake .. && cmake --build . -j$(sysctl -n hw.ncpu)
-cd ../../04_signal_processing && mkdir -p build && cd build && cmake .. && cmake --build . -j$(sysctl -n hw.ncpu)
-
-# 或统一构建
-cd signal_processing_system && mkdir -p build && cd build && cmake .. && cmake --build . -j$(sysctl -n hw.ncpu)
+# 3. 构建 (MSVC 或 MinGW)
+mkdir build && cd build
+cmake .. -G "MinGW Makefiles"   # 或 -G "Visual Studio 17 2022"
+cmake --build . -j%NUMBER_OF_PROCESSORS%
 
 # 4. 运行
-cd ../build
+01_waveform_generation\waveform_gen.exe
+02_jamming_generation\jamming_gen.exe
+03_jamming_detection_suppression\jamming_det_sup.exe
+04_signal_processing\signal_proc.exe
 ./01_waveform_generation/waveform_gen
 ./02_jamming_generation/jamming_gen
 ./03_jamming_detection_suppression/jamming_det_sup
