@@ -1,0 +1,11 @@
+venv/
+build/
+dist/
+lib/
+*.so
+*.pyd
+*.dll
+*.c
+__pycache__/
+*.pyc
+.DS_Store

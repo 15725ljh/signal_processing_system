@@ -53,3 +53,26 @@ if(CMAKE_BUILD_TYPE STREQUAL "Release") # Release模式下启用最高优化
 endif()
 
 target_compile_definitions(jamming_gen PRIVATE OUTPUT_DIR="${PROJECT_ROOT_DIR}/output/") # 输出目录宏定义
+
+# ── 静态库目标: jamming_core (供 GUI pybind11 绑定使用) ──
+# 不依赖 Config.h / parameters.h / Module0.h, 所有参数通过 JammingParams 传入
+add_library(jamming_core STATIC src/jamming_core.cpp)
+
+target_include_directories(jamming_core PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/include  # jamming_core.h, jamming_params.h
+    ${EIGEN_INCLUDE_DIR}
+    ${FFTW_INCLUDE_DIR}
+)
+
+if(FFTW_LIBRARY_DIR)
+    target_link_directories(jamming_core PRIVATE ${FFTW_LIBRARY_DIR})
+endif()
+target_link_libraries(jamming_core PRIVATE fftw3)
+
+if(CMAKE_BUILD_TYPE STREQUAL "Release")
+    if(MSVC)
+        target_compile_options(jamming_core PRIVATE /O2)
+    else()
+        target_compile_options(jamming_core PRIVATE -O3)
+    endif()
+endif()
