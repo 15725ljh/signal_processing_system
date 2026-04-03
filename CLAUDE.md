@@ -28,11 +28,12 @@ mkdir -p build && cd build && cmake .. && cmake --build . -j$(sysctl -n hw.ncpu)
 
 # GUI (Python)
 cd GUI_waveform && pip install -r requirements.txt && python app.py
+cd GUI_jamming && pip install -r requirements.txt && python app.py
 ```
 
 ## Architecture
 
-Four independent C++ modules, sharing a JSON config system. Each module has its own `src/main.cpp` entry point and builds to a standalone executable. Module 01 additionally builds a static library (`libwaveform_core.a`) shared with the GUI.
+Four independent C++ modules, sharing a JSON config system. Each module has its own `src/main.cpp` entry point and builds to a standalone executable. Module 01 additionally builds `libwaveform_core.a`, Module 02 builds `libjamming_core.a`, both shared with their respective GUIs.
 
 ```
 01_waveform_generation/    → waveform_gen + libwaveform_core.a (5 waveform modes)
@@ -43,9 +44,10 @@ GUI_waveform/              → PySide6 app → links libwaveform_core.a via pybi
 GUI_jamming/               → PySide6 app → links libjamming_core.a via pybind11
 ```
 
-### Module 01 Static Library
+### Static Libraries for GUI
 
-Module 01 builds `libwaveform_core.a` containing the 5 waveform generation functions (`waveform_core.cpp`). The GUI's `waveform_cpp.so` (pybind11 binding at `01_waveform_generation/bindings/waveform_bind.cpp`) links against this static library, avoiding code duplication.
+- **Module 01** builds `libwaveform_core.a` (5 waveform generation functions in `waveform_core.cpp`). `GUI_waveform/` links it via pybind11 binding at `01_waveform_generation/bindings/waveform_bind.cpp`.
+- **Module 02** builds `libjamming_core.a` (10 jamming generation functions in `jamming_core.cpp`). `GUI_jamming/` links it via pybind11 binding at `02_jamming_generation/bindings/jamming_bind.cpp`. Requires Eigen + FFTW3.
 
 ### Inter-Module Data Flow
 

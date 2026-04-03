@@ -26,7 +26,7 @@ signal_processing_system/
 ├── 02_jamming_generation/          # 模块2: 干扰生成(10种模式)
 ├── 03_jamming_detection_suppression/ # 模块3: 干扰识别与抑制(5种类型)
 ├── 04_signal_processing/           # 模块4: 信号处理(6种模式)
-└── GUI_waveform/                   # PySide6 GUI (波形生成)
+├── GUI_waveform/                   # PySide6 GUI (波形生成)
 └── GUI_jamming/                    # PySide6 GUI (干扰生成)
 ```
 
@@ -166,7 +166,8 @@ cmake --build . -j$(sysctl -n hw.ncpu)      # macOS
 | `03_jamming_detection_suppression/jamming_det_sup` | 干扰识别与抑制 |
 | `04_signal_processing/signal_proc` | 信号处理 |
 
-模块01额外生成 `libwaveform_core.a` 静态库，供 GUI 的 pybind11 绑定使用。
+模块01额外生成 `libwaveform_core.a` 静态库，供 GUI_waveform 的 pybind11 绑定使用。
+模块02额外生成 `libjamming_core.a` 静态库，供 GUI_jamming 的 pybind11 绑定使用。
 
 ### 单独编译某个模块
 
@@ -374,3 +375,66 @@ echo "=== 完成! 输出文件在 output/ 目录 ==="
 ```
 
 使用方式：保存为 `build_and_run.sh`，放到项目根目录，执行 `chmod +x build_and_run.sh && ./build_and_run.sh`。
+
+---
+
+## 第六步：GUI 应用（可选）
+
+项目提供两个独立的 PySide6 GUI 应用，分别封装模块01（波形生成）和模块02（干扰生成）。
+
+### GUI_waveform（波形生成）
+
+```bash
+cd GUI_waveform
+
+# 安装 Python 依赖
+pip install -r requirements.txt
+
+# 直接运行（开发模式）
+python app.py
+
+# Windows 一键构建（编译 pybind11 + PyInstaller 打包）
+scripts\build.bat
+
+# macOS 一键构建
+bash scripts/build.sh
+```
+
+### GUI_jamming（干扰生成）
+
+```bash
+cd GUI_jamming
+
+# 安装 Python 依赖
+pip install -r requirements.txt
+
+# 直接运行（开发模式）
+python app.py
+
+# Windows 一键构建（编译 pybind11 + PyInstaller 打包）
+scripts\build.bat
+
+# macOS 一键构建
+bash scripts/build.sh
+```
+
+### GUI 构建前置条件
+
+- Python 3.13+
+- pybind11（编译时需要）
+- PySide6, pyqtgraph, numpy, scipy（运行时）
+- PyInstaller（打包时，可选）
+- 对应模块的 C++ 静态库已构建完成（`libwaveform_core.a` 或 `libjamming_core.a`）
+
+### GUI 技术架构
+
+| GUI | 封装模块 | C++ 绑定 | 静态库依赖 |
+|-----|---------|---------|-----------|
+| GUI_waveform | 模块01 (5种波形) | `waveform_bind.cpp` → `waveform_cpp.pyd` | `libwaveform_core.a` (Eigen) |
+| GUI_jamming | 模块02 (10种干扰) | `jamming_bind.cpp` → `jamming_cpp.pyd` | `libjamming_core.a` (Eigen + FFTW3) |
+
+两个 GUI 通过 pybind11 在内存中传递 numpy 数组，不经过文件 I/O。
+
+详细设计文档：
+- [波形生成 GUI 设计](WAVEFORM_GUI_DESIGN.md)
+- [干扰生成 GUI 设计](JAMMING_GUI_DESIGN.md)

@@ -57,14 +57,14 @@
 - **热配置** — 修改 `config.json` 即时生效，支持 `//` 和 `#` 行注释
 - **级联处理** — 模块间通过 `.dat` 文件传递数据，模块 02 支持 10 种干扰的级联叠加
 - **Windows 原生** — 针对 Windows x64 编译，内置 FFTW 源码，MSVC/MinGW 工具链
-- **GUI 界面** — PySide6 桌面应用，pybind11 直调 C++ 引擎，实时波形可视化
+- **GUI 界面** — 两个独立 PySide6 桌面应用：波形生成 GUI + 干扰生成 GUI，pybind11 直调 C++ 引擎
 - **轻量依赖** — 仅依赖 Eigen 和 FFTW 两个第三方库，JSON 解析和 Bessel 函数为自实现
 
 ## 快速开始
 
 ```bash
 # 1. 克隆仓库 (Windows 分支)
-git clone -b feature/windows-gui https://github.com/15725ljh/signal_processing_system.git
+git clone -b feature/win-waveform-jamming-gui https://github.com/15725ljh/signal_processing_system.git
 cd signal_processing_system
 
 # 2. 安装依赖
@@ -99,7 +99,7 @@ cmake --build . -j%NUMBER_OF_PROCESSORS%
 | 配置解析 | 自实现 mini JSON (~215行) | JSON 参数文件解析 |
 | Bessel 函数 | 自实现 `bessel_i0()` Taylor 级数 | Kaiser 窗函数 |
 | 构建系统 | CMake 3.14+ | 跨平台构建 |
-| GUI | PySide6 + pybind11 | 波形可视化界面 |
+| GUI | PySide6 + pybind11 | 波形/干扰可视化界面 |
 
 ## 10 种干扰模式
 
@@ -149,7 +149,8 @@ signal_processing_system/
 | [干扰生成](docs/02_jamming_generation.md) | 模块 02 详解 |
 | [检测抑制](docs/03_jamming_detection_suppression.md) | 模块 03 详解 |
 | [信号处理](docs/04_signal_processing.md) | 模块 04 详解 |
-| [GUI 设计](docs/GUI_DESIGN.md) | PySide6 界面文档 |
+| [波形生成 GUI 设计](docs/WAVEFORM_GUI_DESIGN.md) | PySide6 波形生成界面文档 |
+| [干扰生成 GUI 设计](docs/JAMMING_GUI_DESIGN.md) | PySide6 干扰生成界面文档 |
 
 ## License
 

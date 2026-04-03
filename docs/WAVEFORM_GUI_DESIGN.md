@@ -1,5 +1,7 @@
 # GUI_waveform - 雷达波形生成系统
 
+> **注意**: 本文档描述的是 `GUI_waveform/`（波形生成 GUI）。项目中还有一个独立的 `GUI_jamming/`（干扰生成 GUI），其设计文档见 [JAMMING_GUI_DESIGN.md](JAMMING_GUI_DESIGN.md)。
+
 ## 功能概述
 
 基于 PySide6 的雷达波形生成与可视化桌面应用。**仅封装模块01（波形生成）**，通过 pybind11 直接调用模块01的 `libwaveform_core.a` 静态库，支持5种波形模式(Case1~5)的参数配置、波形生成和7种可视化图表。支持 macOS 和 Windows 双平台。

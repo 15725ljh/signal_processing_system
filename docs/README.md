@@ -73,8 +73,8 @@ signal_processing_system/
 ├── docs/                       # 统一文档目录
 │   ├── README.md               # 项目概述(本文件)
 │   ├── BUILD_GUIDE.md          # 跨平台编译运行手册
-│   ├── GUI_DESIGN.md           # GUI 设计文档
-│   ├── GUI_DELIVERY_SUMMARY.md # GUI 交付说明
+│   ├── WAVEFORM_GUI_DESIGN.md           # 波形生成 GUI 设计文档
+│   ├── WAVEFORM_GUI_DELIVERY_SUMMARY.md # 波形生成 GUI 交付说明
 │   ├── 01_waveform_generation.md
 │   ├── 02_jamming_generation.md
 │   ├── 03_jamming_detection_suppression.md
@@ -128,8 +128,9 @@ signal_processing_system/
   fc=35GHz, B=80MHz, R0=1000m, nrn=2048
   自含 EchoGenerator + JammingSimulator
 
-GUI (PySide6界面) ← 仅封装模块01，通过pybind11直接调用C++
-  不读写.dat文件，数据通过内存numpy数组传递
+GUI_waveform (PySide6界面) ← 封装模块01(波形生成)，通过pybind11直接调用C++
+  GUI_jamming (PySide6界面) ← 封装模块02(干扰生成)，通过pybind11直接调用C++
+  两个GUI独立运行，不读写.dat文件，数据通过内存numpy数组传递
 ```
 
 **运行顺序建议**: 01 → 02 → 04 (模块03可独立运行)
@@ -141,3 +142,5 @@ GUI (PySide6界面) ← 仅封装模块01，通过pybind11直接调用C++
 - [02 - 干扰生成模块](02_jamming_generation.md)
 - [03 - 干扰识别与抑制模块](03_jamming_detection_suppression.md)
 - [04 - 信号处理模块](04_signal_processing.md)
+- [波形生成 GUI 设计](WAVEFORM_GUI_DESIGN.md)
+- [干扰生成 GUI 设计](JAMMING_GUI_DESIGN.md)
