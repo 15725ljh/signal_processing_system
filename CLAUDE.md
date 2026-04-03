@@ -27,7 +27,7 @@ mkdir -p build && cd build && cmake .. && cmake --build . -j$(sysctl -n hw.ncpu)
 ./build/04_signal_processing/signal_proc
 
 # GUI (Python)
-cd GUI && pip install -r requirements.txt && python app.py
+cd GUI_waveform && pip install -r requirements.txt && python app.py
 ```
 
 ## Architecture
@@ -39,7 +39,8 @@ Four independent C++ modules, sharing a JSON config system. Each module has its 
 02_jamming_generation/     → jamming_gen    (10 jamming types)
 03_jamming_detection_suppression/ → jamming_det_sup (5 detection types, fc=35GHz independent)
 04_signal_processing/      → signal_proc    (6 processing algorithms + jamming recognition)
-GUI/                       → PySide6 app → links libwaveform_core.a via pybind11
+GUI_waveform/              → PySide6 app → links libwaveform_core.a via pybind11
+GUI_jamming/               → PySide6 app → links libjamming_core.a via pybind11
 ```
 
 ### Module 01 Static Library
@@ -52,7 +53,8 @@ Module 01 builds `libwaveform_core.a` containing the 5 waveform generation funct
 Module 01 (outputs 11 files) ──→ Module 04 (Case1~5 load matching waveforms)
 Module 02 (outputs 20 files) ──→ Module 04 (shibie + Case6 load jammed data)
 Module 03 (outputs 6 files)  ←→  Completely independent (no file exchange)
-GUI ──pybind11──→ Module 01 only (in-memory numpy arrays, no .dat file I/O)
+GUI_waveform ──pybind11──→ Module 01 only (in-memory numpy arrays, no .dat file I/O)
+GUI_jamming  ──pybind11──→ Module 02 only (in-memory numpy arrays, no .dat file I/O)
 ```
 
 - Module 04 is the sole data consumer. `load_case_data(mode)` loads per-Case matching data from modules 01/02.
@@ -81,7 +83,7 @@ Located in `third_party/`: Eigen 3.4.0 (header-only), FFTW 3.3.10 (compiled), mi
 
 ## GUI Platform Notes
 
-- **Build artifacts**: `GUI/lib/` contains `waveform_cpp.pyd/.so` and MinGW DLLs. `app.py` registers `lib/` in `sys.path` at startup. Directory is `.gitignore`d.
+- **Build artifacts**: `GUI_waveform/lib/` contains `waveform_cpp.pyd/.so` and MinGW DLLs. `GUI_jamming/lib/` contains `jamming_cpp.pyd` and MinGW DLLs. `app.py` registers `lib/` in `sys.path` at startup. Both `lib/` directories are `.gitignore`d.
 - **Windows 11 taskbar icon**: Qt's native `setWindowIcon` is insufficient. The fix requires three elements together: (1) `SetCurrentProcessExplicitAppUserModelID` before window creation, (2) `SetClassLongPtrW(GCLP_HICONSM/HICON)` for class-level icon persistence, (3) `QTimer.singleShot(200, ...)` deferred call in `showEvent` to bypass Qt's internal icon reset. See `ui/main_window.py:_apply_win32_taskbar_icon()`.
 - **SVG export bug**: pyqtgraph 0.14.0 `SVGExporter` crashes on space-separated path coords. Patched in `venv/Lib/site-packages/pyqtgraph/exporters/SVGExporter.py`.
 - **Icon loading**: `assets/icon_b64.txt` stores base64-encoded PNG, loaded at runtime. `assets/app_icon.ico` used for Win32 API and PyInstaller exe icon.

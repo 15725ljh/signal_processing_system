@@ -134,7 +134,8 @@ signal_processing_system/
 ├── 02_jamming_generation/      # 模块2: 干扰生成(10种模式)
 ├── 03_jamming_detection_suppression/ # 模块3: 干扰识别与抑制(5种类型)
 ├── 04_signal_processing/       # 模块4: 信号处理(6种模式)
-├── GUI/                        # PySide6 GUI (链接模块01静态库)
+├── GUI_waveform/               # PySide6 GUI (链接模块01静态库)
+├── GUI_jamming/                # PySide6 GUI (链接模块02静态库)
 ├── docs/                       # 统一文档目录
 └── output/                     # 运行输出目录
 ```

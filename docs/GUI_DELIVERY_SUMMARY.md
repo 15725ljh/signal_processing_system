@@ -21,7 +21,7 @@
 ### 源代码
 
 ```
-GUI/
+GUI_waveform/
 ├── app.py                    # 入口 (图标加载、AppUserModelID、lib/ 路径注册)
 ├── requirements.txt          # Python 依赖
 ├── lib/                      # 构建产物 (.gitignore 已忽略)

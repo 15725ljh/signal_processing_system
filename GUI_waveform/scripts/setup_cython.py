@@ -3,7 +3,7 @@ from Cython.Build import cythonize
 import numpy as np
 import os
 
-os.chdir(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))  # GUI root
+os.chdir(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))  # GUI_waveform root
 
 extensions = [
     Extension(

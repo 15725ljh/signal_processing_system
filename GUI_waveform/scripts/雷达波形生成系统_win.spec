@@ -3,7 +3,7 @@
 Windows 版 PyInstaller 打包配置
 
 用法:
-    cd GUI
+    cd GUI_waveform
     venv\Scripts\activate
     pyinstaller --clean scripts/雷达波形生成系统_win.spec
 
