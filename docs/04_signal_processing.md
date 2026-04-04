@@ -214,7 +214,7 @@ chuli() {
 
 - **算法**: Tsallis交叉熵(q=1.0=Shannon熵)二值分割STFT时频图
 - **自适应量化**: 使用中位数×3.0作为噪声基底，信号区域直方图排除噪声bin
-- **ISR诊断**: 输出 `ISR = 20*log10(target_energy/jam_energy)` (典型值 ~+7 dB)
+- **JSR诊断**: 输出 `JSR = 20*log10(target_energy/jam_energy)` (典型值 ~+7 dB)
 - **输出**:
   - `04_processing_Case6_分离干扰信号_jam_sig.dat` (nrn×nan1 分离出的干扰信号)
   - `04_processing_Case6_分离目标信号_target_sig.dat` (nrn×nan1 分离出的目标信号)

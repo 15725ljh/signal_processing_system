@@ -129,7 +129,7 @@ C++ 绑定层 (04_signal_processing/bindings/signal_processing_bind.cpp → sign
 
 **派生参数（自动计算显示）：** fs=3×B, gama=B/Tp, lam=c/fc, prt=1/prf, nrn, Tstart 等
 
-**Case 选择：** 6 个 Case 复选框（默认 Case1 全选），Case6 附带干扰类型下拉框（ISDJ/ISRJ/ISCJ/NBJ/RDJ）。
+**Case 选择：** 6 个 Case 复选框（默认 Case1 全选）。Case6 自动处理全部 5 种干扰类型（ISDJ/ISRJ/ISCJ/NBJ/RDJ），无需手动选择。
 
 ### 可视化面板 (plot_panel.py)
 
@@ -142,7 +142,7 @@ C++ 绑定层 (04_signal_processing/bindings/signal_processing_bind.cpp → sign
 | 信号矩阵 | ImagePlotWidget | 热力图 (实部/虚部/幅度/相位 切换)，viridis/CET-D1A 色表 |
 | 距离-多普勒 | RDMapPlotWidget | RD 热力图（C++ 返回的物理坐标 xi/dv，自定义 Jet 色表，60dB 动态范围，十字准线） |
 | 解耦结果 | DecouplePlot | Case6 分离对比（含干扰回波/分离干扰/分离目标/三线叠加），十字准线 |
-| 结果汇总 | ResultSummaryPlot | Case1~5 峰值功率柱状图 / Case6 正常/高阶谱/ISR 柱状图 |
+| 结果汇总 | ResultSummaryPlot | Case1~5 峰值功率柱状图 / Case6 正常/高阶谱/JSR干扰抑制比 柱状图 |
 | STFT | STFTPlotWidget | scipy.signal.stft 时频分析（去载波后），50dB 动态范围 |
 
 **RD 图坐标（C++ 直接返回物理坐标）：**
@@ -176,7 +176,7 @@ if fc > 0 and fs > 0:
 
 `run_processing_decouple(jam_type, config_dict)` — Case6 干扰解耦：
 - 输入：干扰类型 (1-5)，完整配置字典
-- 输出：jam_signal, target_signal, input_signal, decouple_flag, isr_dB, avg_threshold, gaojiepu_count, nrn, nan1, elapsed, log_output
+- 输出：jam_signal, target_signal, input_signal, decouple_flag, jsr_dB, avg_threshold, gaojiepu_count, nrn, nan1, elapsed, log_output
 
 **多线程计算：** `ComputeThread(QThread)` 遍历选中的 Case，逐 Case 调用对应 C++ 入口。信号：log → 控制台, result → 绘图更新, allFinished → 完成。
 
@@ -219,7 +219,7 @@ if fc > 0 and fs > 0:
 | target_signal | complex128 (nrn×nan1) | 分离目标信号 |
 | input_signal | complex128 (nrn×nan1) | 混合输入信号 |
 | decouple_flag | int64 (nan1,) | 解耦标志 (0=正常, 1=高阶谱) |
-| isr_dB | float | 干扰抑制比 (dB) |
+| jsr_dB | float | 干扰抑制比 (dB) |
 | avg_threshold | float | 平均阈值 |
 | gaojiepu_count | int | 高阶谱脉冲数 |
 | nrn | int | 距离向采样点数 |

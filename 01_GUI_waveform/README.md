@@ -219,6 +219,6 @@ ui/*.py + assets/ ── PyInstaller ──→ 雷达波形生成系统.app (mac
 |------|-------|---------|
 | C++ 绑定产物 | `waveform_cpp.cpython-314-darwin.so` | `waveform_cpp.pyd` |
 | 打包 spec | `雷达波形生成系统.spec` | `雷达波形生成系统_win.spec` |
-| 打包输出 | `dist/雷达波形生成系统.app` | `dist/雷达波形生成系统/雷达波形生成系统.exe` |
+| 打包输出 | `dist/雷达波形生成系统.app` | `dist/雷达波形生成系统.exe` (单文件) |
 | 运行时 DLL | 不需要 | 需要 MinGW UCRT64 (libgcc/libstdc++/libwinpthread) |
 | 任务栏图标 | 原生支持 | 需 Win32 API (SetClassLongPtrW + QTimer.singleShot) |

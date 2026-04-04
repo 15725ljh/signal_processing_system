@@ -238,6 +238,6 @@ ui/*.py + assets/ ── PyInstaller ──→ 雷达干扰生成系统.app (mac
 |------|-------|---------|
 | C++ 绑定产物 | `jamming_cpp.cpython-314-darwin.so` | `jamming_cpp.pyd` |
 | 打包 spec | `雷达干扰生成系统.spec` | `雷达干扰生成系统_win.spec` |
-| 打包输出 | `dist/雷达干扰生成系统.app` | `dist/雷达干扰生成系统/雷达干扰生成系统.exe` |
+| 打包输出 | `dist/雷达干扰生成系统.app` | `dist/雷达干扰生成系统.exe` (单文件) |
 | 运行时 DLL | 不需要 | 需要 MinGW UCRT64 (libgcc/libstdc++/libwinpthread) + FFTW3 |
 | 任务栏图标 | 原生支持 | 需 Win32 API (SetClassLongPtrW + QTimer.singleShot) |

@@ -148,7 +148,7 @@ C++ 绑定层 (03_jamming_detection_suppression/bindings/detection_bind.cpp → 
 | 分离对比 | SeparationPlot | 含干扰回波/分离干扰/分离目标三线叠加对比，十字准线 |
 | 分离时频 | SeparatedSTFTPlot | scipy.signal.stft 计算的分离后时频图，50dB 动态范围 |
 | 距离-多普勒 | RDMapPlotWidget | RD 热力图（去载波+去斜+fftshift，物理坐标 m/m/s，十字准线） |
-| 检测统计 | DetectionStatsPlot | 柱状图（4种识别类型投票）+ ISR 信息面板 |
+| 检测统计 | DetectionStatsPlot | 柱状图（4种识别类型投票）+ JSR干扰抑制比 信息面板 |
 
 **CPI 选择器：** 脉冲索引下拉框，实时切换当前脉冲的时域/频域/分离视图（30ms 防抖）。
 
@@ -213,7 +213,7 @@ C++ 后端通过 pybind11 返回以下数据：
 | correct_count | int | 正确识别投票数 |
 | cpiNum | int | CPI 数量 |
 | nrn | int | 采样点数 |
-| isr | float | 干扰抑制比 (dB) |
+| jsr | float | 干扰抑制比 (dB) |
 | elapsed | float | 计算耗时 (s) |
 | log_output | str | C++ 后端日志输出 |
 

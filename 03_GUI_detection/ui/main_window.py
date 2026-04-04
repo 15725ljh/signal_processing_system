@@ -306,8 +306,8 @@ class MainWindow(QMainWindow):
 
     def _get_config_home(self):
         if self._is_frozen_app():
-            exe = os.path.dirname(os.path.dirname(os.path.dirname(sys.executable)))
-            return os.path.dirname(exe)
+            exe_dir = os.path.dirname(sys.executable)
+            return os.path.dirname(os.path.dirname(exe_dir))
         return os.path.dirname(os.path.dirname(os.path.abspath(sys.argv[0])))
 
     def _search_config(self):
@@ -316,8 +316,8 @@ class MainWindow(QMainWindow):
             return env_path
 
         if self._is_frozen_app():
-            start_dir = os.path.dirname(os.path.dirname(os.path.dirname(sys.executable)))
-            start_dir = os.path.dirname(start_dir)
+            exe_dir = os.path.dirname(sys.executable)
+            start_dir = os.path.dirname(os.path.dirname(exe_dir))
         else:
             start_dir = os.path.dirname(os.path.dirname(os.path.abspath(sys.argv[0])))
 

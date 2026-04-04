@@ -7,7 +7,7 @@ Windows 版 PyInstaller 打包配置 — 雷达干扰识别与抑制系统
     venv\Scripts\activate
     pyinstaller --clean scripts/雷达干扰识别系统_win.spec
 
-输出: dist/雷达干扰识别系统/雷达干扰识别系统.exe
+输出: dist/雷达干扰识别系统.exe (单文件)
 """
 
 import sys
@@ -49,11 +49,10 @@ a = Analysis(
     hooksconfig={},
     runtime_hooks=[],
     excludes=[
-        'tkinter', 'unittest', 'email', 'html', 'xml', 'pydoc',
-        'doctest', 'difflib', 'inspect', 'asyncio', 'multiprocessing',
-        'lib2to3', 'setuptools', 'pip', 'pytest',
+        'tkinter',
         'IPython', 'jupyter', 'notebook', 'matplotlib',
-        'pandas', 'flask', 'django', 'requests', 'urllib3',
+        'pandas', 'flask', 'django', 'pytest',
+        'lib2to3', 'setuptools', 'pip',
     ],
     noarchive=False,
     optimize=0,
@@ -63,13 +62,16 @@ pyz = PYZ(a.pure)
 exe = EXE(
     pyz,
     a.scripts,
+    a.binaries,
+    a.datas,
     [],
-    exclude_binaries=True,
     name='雷达干扰识别系统',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
     upx=True,
+    upx_exclude=[],
+    runtime_tmpdir=None,
     console=False,
     disable_windowed_traceback=False,
     argv_emulation=False,
@@ -77,13 +79,4 @@ exe = EXE(
     codesign_identity=None,
     entitlements_file=None,
     icon=GUI_ROOT + '/assets/app_icon.ico',
-)
-coll = COLLECT(
-    exe,
-    a.binaries,
-    a.datas,
-    strip=False,
-    upx=True,
-    upx_exclude=[],
-    name='雷达干扰识别系统',
 )
