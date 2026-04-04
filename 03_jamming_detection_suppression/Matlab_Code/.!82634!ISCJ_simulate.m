@@ -1,1 +1,0 @@
-function jammingsignal = ISCJ_simulate(fc,B,fs,prf,Tp,nan,R0,R1)
