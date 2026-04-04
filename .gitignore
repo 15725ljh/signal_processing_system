@@ -39,3 +39,6 @@ desktop.ini
 
 # Config (may contain local paths)
 # config.json
+
+# Claude Code local overrides (secrets, personal settings)
+.claude/settings.local.json
