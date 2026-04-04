@@ -56,7 +56,7 @@ def main():
             for _s in [16, 24, 32, 48, 64, 128, 256]:
                 _sp = _pm.scaled(_s, _s, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
                 # 绘制模块序号徽章
-                _bsz = max(_s * 0.45, 10)
+                _bsz = max(_s * 0.55, 12)
                 _cx = _s - _bsz * 0.55
                 _cy = _s - _bsz * 0.55
                 _p = QPainter(_sp)
