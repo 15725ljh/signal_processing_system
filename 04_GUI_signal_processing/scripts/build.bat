@@ -4,7 +4,7 @@ cd /d "%~dp0\.."
 set GUI_ROOT=%cd%
 set PY=%GUI_ROOT%\venv\Scripts\python.exe
 
-echo === [1/4] 编译 C++ 绑定 (signal_processing_cpp.pyd) ===
+echo === [1/3] 编译 C++ 绑定 (signal_processing_cpp.pyd) ===
 
 for /f "delims=" %%i in ('%PY% -c "import pybind11; print(pybind11.get_include())"') do set PYBIND_INC=%%i
 for /f "delims=" %%i in ('%PY% -c "import sysconfig; print(sysconfig.get_path('include'))"') do set PYTHON_INC=%%i
@@ -47,9 +47,13 @@ if errorlevel 1 (
 )
 echo [完成] lib\signal_processing_cpp.pyd
 
-echo === [2/4] 编译 Cython 模块 ===
+echo === [2/3] 编译 Cython 模块 ===
 if exist core\config_manager.py (
     %PY% scripts\setup_cython.py build_ext --inplace
+    if errorlevel 1 (
+        echo [错误] Cython 编译失败
+        exit /b 1
+    )
     del core\config_manager.py core\signal_utils.py core\*.c 2>nul
     rmdir /s /q core\__pycache__
     echo [完成] core/*.pyd
@@ -57,10 +61,14 @@ if exist core\config_manager.py (
     echo [跳过] core/ 已是编译产物
 )
 
-echo === [3/4] 打包 .exe ===
-if exist build rmdir /s /q build
-if exist dist  rmdir /s /q dist
-%PY% -m PyInstaller --clean scripts\雷达信号处理系统_win.spec
+echo === [3/3] 打包 .exe ===
+if "%~1"=="clean" (
+    if exist build rmdir /s /q build
+    if exist dist  rmdir /s /q dist
+    %PY% -m PyInstaller --clean --noconfirm scripts\雷达信号处理系统_win.spec
+) else (
+    %PY% -m PyInstaller --noconfirm scripts\雷达信号处理系统_win.spec
+)
 
 if errorlevel 1 (
     echo [错误] 打包失败

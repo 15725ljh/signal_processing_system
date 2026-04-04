@@ -74,9 +74,11 @@
 
 ```bash
 #!/bin/bash
-# Claude Code status line: model | cwd | context
+# Claude Code status line: model | cwd | real context tokens
+# 从会话日志读取真实 token 数，避免 GLM 代理返回错误的 context window
 PYTHONIOENCODING=utf-8 python -c "
-import sys, json, os, re
+import sys, json, os, re, glob
+
 try:
     d = json.load(sys.stdin)
     model = d.get('model', {}).get('display_name', 'unknown')
@@ -85,15 +87,42 @@ try:
     home = os.path.expanduser('~')
     if cwd.startswith(home):
         cwd = '~' + cwd[len(home):]
-    cw = d.get('context_window', {})
-    pct = cw.get('used_percentage')
-    if pct is not None:
-        used_k = round(pct / 100 * 200, 1)
-        ctx = f'{used_k}K/200K ({round(pct,1)}%)'
+
+    # 从 JSONL 日志读取最后一条 assistant 响应的真实 token
+    session_dir = os.path.expanduser('~/.claude/projects/C--Code-C---signal-processing-system/')
+    jsonl_files = glob.glob(os.path.join(session_dir, '*.jsonl'))
+    real_ctx = None
+    for jf in sorted(jsonl_files, key=os.path.getmtime, reverse=True):
+        try:
+            with open(jf, 'r', encoding='utf-8') as f:
+                lines = f.readlines()
+            for line in reversed(lines):
+                obj = json.loads(line.strip())
+                if obj.get('type') == 'assistant':
+                    usage = obj.get('message', {}).get('usage', {})
+                    inp = usage.get('input_tokens', 0)
+                    cache_read = usage.get('cache_read_input_tokens', 0)
+                    if inp > 0:
+                        real_ctx = inp + cache_read
+                        break
+            if real_ctx is not None:
+                break
+        except:
+            continue
+
+    if real_ctx is not None:
+        limit = 200000
+        pct = real_ctx / limit * 100
+        ctx = f'{round(real_ctx/1000, 1)}K/{limit//1000}K ({round(pct, 1)}%)'
     else:
-        ctx = '已用:--'
+        ctx = 'ctx:--'
+
     print(f'{model} | {cwd} | {ctx}')
 except:
     print('---')
 "
 ```
+
+### 修复说明
+
+旧版从 `context_window.used_percentage` 读取百分比，GLM 代理返回的上下文窗口参数与 Claude 原生 API 不一致，导致显示的 token 数和百分比严重偏差。新版改为直接从 JSONL 会话日志中读取最后一条 API 响应的 `input_tokens + cache_read_input_tokens`，得到真实的上下文 token 数。

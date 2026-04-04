@@ -48,7 +48,13 @@ a = Analysis(
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=[],
+    excludes=[
+        'tkinter', 'unittest', 'pydoc',
+        'doctest', 'difflib', 'asyncio', 'multiprocessing',
+        'lib2to3', 'setuptools', 'pip', 'pytest',
+        'IPython', 'jupyter', 'notebook', 'matplotlib',
+        'pandas', 'flask', 'django',
+    ],
     noarchive=False,
     optimize=0,
 )

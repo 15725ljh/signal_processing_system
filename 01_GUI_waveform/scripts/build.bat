@@ -8,6 +8,7 @@ echo === [1/3] 编译 C++ 绑定 ===
 
 for /f "delims=" %%i in ('%PY% -c "import pybind11; print(pybind11.get_include())"') do set PYBIND_INC=%%i
 for /f "delims=" %%i in ('%PY% -c "import sysconfig; print(sysconfig.get_path('include'))"') do set PYTHON_INC=%%i
+for /f "delims=" %%i in ('%PY% -c "import sysconfig; print(sysconfig.get_config_var('LIBDIR'))"') do set PYTHON_LIB=%%i
 
 set MODULE01_LIB=%GUI_ROOT%\..\01_waveform_generation\build\libwaveform_core.a
 if not exist "%MODULE01_LIB%" (
@@ -25,6 +26,7 @@ g++ -O3 -std=c++17 -shared ^
     -I"%GUI_ROOT%\..\01_waveform_generation\include" ^
     "%GUI_ROOT%\..\01_waveform_generation\bindings\waveform_bind.cpp" ^
     "%MODULE01_LIB%" ^
+    -L"%PYTHON_LIB%" -lpython313 ^
     -o lib\waveform_cpp.pyd
 
 if errorlevel 1 (
@@ -36,6 +38,10 @@ echo [完成] waveform_cpp.pyd
 echo === [2/3] 编译 Cython 模块 ===
 if exist core\config_manager.py (
     %PY% scripts\setup_cython.py build_ext --inplace
+    if errorlevel 1 (
+        echo [错误] Cython 编译失败
+        exit /b 1
+    )
     del core\config_manager.py core\signal_utils.py core\*.c 2>nul
     rmdir /s /q core\__pycache__
     echo [完成] core/*.pyd
@@ -44,9 +50,13 @@ if exist core\config_manager.py (
 )
 
 echo === [3/3] 打包 .exe ===
-if exist build rmdir /s /q build
-if exist dist  rmdir /s /q dist
-%PY% -m PyInstaller --clean scripts\雷达波形生成系统_win.spec
+if "%~1"=="clean" (
+    if exist build rmdir /s /q build
+    if exist dist  rmdir /s /q dist
+    %PY% -m PyInstaller --clean --noconfirm scripts\雷达波形生成系统_win.spec
+) else (
+    %PY% -m PyInstaller --noconfirm scripts\雷达波形生成系统_win.spec
+)
 
 if errorlevel 1 (
     echo [错误] 打包失败
