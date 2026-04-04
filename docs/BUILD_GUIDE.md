@@ -429,7 +429,21 @@ cd 03_GUI_detection && scripts\build.bat
 cd 04_GUI_signal_processing && scripts\build.bat
 ```
 
-打包产物位于各 `dist/` 目录，整个文件夹（含 `_internal/`）可拷贝到任意 Windows 机器运行。
+打包产物位于各 `dist/` 目录下的单文件 exe，可直接拷贝到任意 Windows 机器运行。
+`config.json` 需放在 exe 上两级目录（项目根目录），或通过菜单 **文件 → 加载配置...** 手动导入。
+
+### C++ 源码分发
+
+项目根目录提供四个 C++ 模块的加密 zip 包（已排除 build/output/venv 等构建产物）：
+
+| 文件 | 模块 |
+|------|------|
+| `01_waveform_generation.zip` | 波形生成 |
+| `02_jamming_generation.zip` | 干扰生成 |
+| `03_jamming_detection_suppression.zip` | 干扰识别与抑制 |
+| `04_signal_processing.zip` | 信号处理 |
+
+解压密码：`xidian_LIJINGHENG`
 
 ### GUI 构建前置条件
 
