@@ -1,7 +1,7 @@
 /*
  * detection_core.h — 模块03 GUI 薄封装 API
  *
- * 提供检测+分离+ISR评估的完整流水线, 供 GUI_detection 通过 pybind11 调用。
+ * 提供检测+分离+ISR评估的完整流水线, 供 03_GUI_detection 通过 pybind11 调用。
  * 所有算法逻辑复用现有头文件 (EchoGenerator.h, GrDetection.h, JamTarDivi.h 等),
  * 本文件仅负责组装流水线并收集中间结果用于可视化。
  *

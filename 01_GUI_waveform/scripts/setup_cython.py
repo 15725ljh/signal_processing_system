@@ -3,7 +3,7 @@ from Cython.Build import cythonize
 import numpy as np
 import os
 
-os.chdir(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))  # GUI_jamming root
+os.chdir(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))  # 01_GUI_waveform root
 
 extensions = [
     Extension(
@@ -19,7 +19,7 @@ extensions = [
 ]
 
 setup(
-    name="radar_jamming_core",
+    name="radar_core",
     ext_modules=cythonize(
         extensions,
         compiler_directives={

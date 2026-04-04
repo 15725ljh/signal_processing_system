@@ -22,7 +22,7 @@
 │   ├── main.cpp                # 入口：Config::instance().load() → 自动循环5种干扰类型测试
 │   └── detection_core.cpp      # 共享库：检测+分离流水线封装(供 GUI 使用)
 └── bindings/
-    └── detection_bind.cpp      # pybind11 绑定（薄适配层，供 GUI_detection 使用）
+    └── detection_bind.cpp      # pybind11 绑定（薄适配层，供 03_GUI_detection 使用）
 ```
 
 ## 独立参数体系

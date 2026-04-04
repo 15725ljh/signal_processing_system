@@ -1,7 +1,7 @@
 /*
  * signal_processing_core.h — 模块04 GUI 薄封装 API
  *
- * 提供三个独立入口供 GUI_signal_processing 通过 pybind11 调用:
+ * 提供三个独立入口供 04_GUI_signal_processing 通过 pybind11 调用:
  *   1. run_recognition()         — 干扰识别 (STFT + gr_detection → J_type 0-10)
  *   2. run_processing_rd()      — 距离-多普勒处理 (Cases 1-5, 输出 RD map)
  *   3. run_processing_decouple() — 时频干扰解耦 (Case 6, 输出分离信号 + ISR)

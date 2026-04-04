@@ -3,7 +3,7 @@ from Cython.Build import cythonize
 import numpy as np
 import os
 
-os.chdir(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))  # GUI_waveform root
+os.chdir(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))  # 03_GUI_detection root
 
 extensions = [
     Extension(
@@ -19,7 +19,7 @@ extensions = [
 ]
 
 setup(
-    name="radar_core",
+    name="radar_detection_core",
     ext_modules=cythonize(
         extensions,
         compiler_directives={

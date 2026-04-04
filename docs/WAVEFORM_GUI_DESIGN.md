@@ -1,6 +1,6 @@
-# GUI_waveform - 雷达波形生成系统
+# 01_GUI_waveform - 雷达波形生成系统
 
-> **注意**: 本文档描述的是 `GUI_waveform/`（波形生成 GUI）。项目中还有一个独立的 `GUI_jamming/`（干扰生成 GUI），其设计文档见 [JAMMING_GUI_DESIGN.md](JAMMING_GUI_DESIGN.md)。
+> **注意**: 本文档描述的是 `01_GUI_waveform/`（波形生成 GUI）。项目中还有一个独立的 `02_GUI_jamming/`（干扰生成 GUI），其设计文档见 [JAMMING_GUI_DESIGN.md](JAMMING_GUI_DESIGN.md)。
 
 ## 功能概述
 
@@ -31,7 +31,7 @@ C++ 绑定层 (01_waveform_generation/bindings/waveform_bind.cpp → waveform_cp
 ## 目录结构
 
 ```
-GUI_waveform/
+01_GUI_waveform/
 ├── app.py                          # 程序入口（图标加载、AppUserModelID 设置、lib/ 路径注册）
 ├── requirements.txt                # Python 依赖
 │
@@ -167,9 +167,9 @@ GUI 按以下顺序搜索 `config.json`：
 ## 与C++模块的关系
 
 ```
-GUI_waveform/app.py
+01_GUI_waveform/app.py
     → ui/main_window.py (_run_waveform_cpp)
-        → waveform_cpp.pyd / .so (pybind11, 位于 GUI_waveform/lib/ 目录)
+        → waveform_cpp.pyd / .so (pybind11, 位于 01_GUI_waveform/lib/ 目录)
             → 01_waveform_generation/bindings/waveform_bind.cpp
                 → libwaveform_core.a (静态库, 来自模块01)
                     → C++ waveform_core.cpp (5种波形生成函数)

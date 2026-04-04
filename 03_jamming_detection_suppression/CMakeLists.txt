@@ -48,7 +48,7 @@ endif()
 
 file(GLOB_RECURSE SOURCES "src/*.cpp")  # 递归收集src/下所有.cpp源文件
 
-# 静态库目标: 供 GUI_detection 通过 pybind11 链接
+# 静态库目标: 供 03_GUI_detection 通过 pybind11 链接
 add_library(detection_core STATIC
     src/detection_core.cpp
 )

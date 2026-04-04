@@ -27,10 +27,10 @@ mkdir -p build && cd build && cmake .. && cmake --build . -j$(sysctl -n hw.ncpu)
 ./build/04_signal_processing/signal_proc
 
 # GUI (Python)
-cd GUI_waveform && pip install -r requirements.txt && python app.py
-cd GUI_jamming && pip install -r requirements.txt && python app.py
-cd GUI_detection && pip install -r requirements.txt && python app.py
-cd GUI_signal_processing && pip install -r requirements.txt && python app.py
+cd 01_GUI_waveform && pip install -r requirements.txt && python app.py
+cd 02_GUI_jamming && pip install -r requirements.txt && python app.py
+cd 03_GUI_detection && pip install -r requirements.txt && python app.py
+cd 04_GUI_signal_processing && pip install -r requirements.txt && python app.py
 ```
 
 ## Architecture
@@ -42,18 +42,18 @@ Four independent C++ modules, sharing a JSON config system. Each module has its 
 02_jamming_generation/     → jamming_gen    (10 jamming types)
 03_jamming_detection_suppression/ → jamming_det_sup + libdetection_core.a (5 detection types, fc=35GHz independent)
 04_signal_processing/      → signal_proc + libsignal_processing_core.a (6 processing algorithms + jamming recognition)
-GUI_waveform/              → PySide6 app → links libwaveform_core.a via pybind11
-GUI_jamming/               → PySide6 app → links libjamming_core.a via pybind11
-GUI_detection/             → PySide6 app → links libdetection_core.a via pybind11
-GUI_signal_processing/     → PySide6 app → links libsignal_processing_core.a + libwaveform_core.a via pybind11
+01_GUI_waveform/              → PySide6 app → links libwaveform_core.a via pybind11
+02_GUI_jamming/               → PySide6 app → links libjamming_core.a via pybind11
+03_GUI_detection/             → PySide6 app → links libdetection_core.a via pybind11
+04_GUI_signal_processing/     → PySide6 app → links libsignal_processing_core.a + libwaveform_core.a via pybind11
 ```
 
 ### Static Libraries for GUI
 
-- **Module 01** builds `libwaveform_core.a` (5 waveform generation functions in `waveform_core.cpp`). `GUI_waveform/` links it via pybind11 binding at `01_waveform_generation/bindings/waveform_bind.cpp`.
-- **Module 02** builds `libjamming_core.a` (10 jamming generation functions in `jamming_core.cpp`). `GUI_jamming/` links it via pybind11 binding at `02_jamming_generation/bindings/jamming_bind.cpp`. Requires Eigen + FFTW3.
-- **Module 03** builds `libdetection_core.a` (detection+separation pipeline in `detection_core.cpp`). `GUI_detection/` links it via pybind11 binding at `03_jamming_detection_suppression/bindings/detection_bind.cpp`. Requires Eigen + FFTW3. Config injection via temp JSON file → `Config::instance().loadFromFile()`.
-- **Module 04** builds `libsignal_processing_core.a` (recognition + processing pipeline in `signal_processing_core.cpp`). `GUI_signal_processing/` links it via pybind11 binding at `04_signal_processing/bindings/signal_processing_bind.cpp`. Requires Eigen + FFTW3. Also links `libwaveform_core.a` for Cases 1-5 waveform generation. Config injection via temp JSON file. Three entry points: `run_recognition()`, `run_processing_rd()`, `run_processing_decouple()`.
+- **Module 01** builds `libwaveform_core.a` (5 waveform generation functions in `waveform_core.cpp`). `01_GUI_waveform/` links it via pybind11 binding at `01_waveform_generation/bindings/waveform_bind.cpp`.
+- **Module 02** builds `libjamming_core.a` (10 jamming generation functions in `jamming_core.cpp`). `02_GUI_jamming/` links it via pybind11 binding at `02_jamming_generation/bindings/jamming_bind.cpp`. Requires Eigen + FFTW3.
+- **Module 03** builds `libdetection_core.a` (detection+separation pipeline in `detection_core.cpp`). `03_GUI_detection/` links it via pybind11 binding at `03_jamming_detection_suppression/bindings/detection_bind.cpp`. Requires Eigen + FFTW3. Config injection via temp JSON file → `Config::instance().loadFromFile()`.
+- **Module 04** builds `libsignal_processing_core.a` (recognition + processing pipeline in `signal_processing_core.cpp`). `04_GUI_signal_processing/` links it via pybind11 binding at `04_signal_processing/bindings/signal_processing_bind.cpp`. Requires Eigen + FFTW3. Also links `libwaveform_core.a` for Cases 1-5 waveform generation. Config injection via temp JSON file. Three entry points: `run_recognition()`, `run_processing_rd()`, `run_processing_decouple()`.
 
 ### Inter-Module Data Flow
 
@@ -61,10 +61,10 @@ GUI_signal_processing/     → PySide6 app → links libsignal_processing_core.a
 Module 01 (outputs 11 files) ──→ Module 04 (Case1~5 load matching waveforms)
 Module 02 (outputs 20 files) ──→ Module 04 (shibie + Case6 load jammed data)
 Module 03 (outputs 6 files)  ←→  Completely independent (no file exchange)
-GUI_waveform ──pybind11──→ Module 01 only (in-memory numpy arrays, no .dat file I/O)
-GUI_jamming  ──pybind11──→ Module 02 only (in-memory numpy arrays, no .dat file I/O)
-GUI_detection ──pybind11──→ Module 03 only (in-memory numpy arrays, temp JSON for config injection)
-GUI_signal_processing ──pybind11──→ Module 04 + Module 01 (in-memory numpy arrays, temp JSON for config injection)
+01_GUI_waveform ──pybind11──→ Module 01 only (in-memory numpy arrays, no .dat file I/O)
+02_GUI_jamming  ──pybind11──→ Module 02 only (in-memory numpy arrays, no .dat file I/O)
+03_GUI_detection ──pybind11──→ Module 03 only (in-memory numpy arrays, temp JSON for config injection)
+04_GUI_signal_processing ──pybind11──→ Module 04 + Module 01 (in-memory numpy arrays, temp JSON for config injection)
 ```
 
 - Module 04 is the sole data consumer. `load_case_data(mode)` loads per-Case matching data from modules 01/02.
@@ -95,7 +95,7 @@ Located in `third_party/`: Eigen 3.4.0 (header-only), FFTW 3.3.10 (compiled), mi
 
 ## GUI Platform Notes
 
-- **Build artifacts**: `GUI_waveform/lib/` contains `waveform_cpp.pyd/.so` and MinGW DLLs. `GUI_jamming/lib/` contains `jamming_cpp.pyd` and MinGW DLLs. `GUI_detection/lib/` contains `detection_cpp.pyd` and MinGW DLLs. `GUI_signal_processing/lib/` contains `signal_processing_cpp.pyd` and MinGW DLLs. `app.py` registers `lib/` in `sys.path` at startup. All `lib/` directories are `.gitignore`d.
+- **Build artifacts**: `01_GUI_waveform/lib/` contains `waveform_cpp.pyd/.so` and MinGW DLLs. `02_GUI_jamming/lib/` contains `jamming_cpp.pyd` and MinGW DLLs. `03_GUI_detection/lib/` contains `detection_cpp.pyd` and MinGW DLLs. `04_GUI_signal_processing/lib/` contains `signal_processing_cpp.pyd` and MinGW DLLs. `app.py` registers `lib/` in `sys.path` at startup. All `lib/` directories are `.gitignore`d.
 - **Windows 11 taskbar icon**: Qt's native `setWindowIcon` is insufficient. The fix requires three elements together: (1) `SetCurrentProcessExplicitAppUserModelID` before window creation, (2) `SetClassLongPtrW(GCLP_HICONSM/HICON)` for class-level icon persistence, (3) `QTimer.singleShot(200, ...)` deferred call in `showEvent` to bypass Qt's internal icon reset. See `ui/main_window.py:_apply_win32_taskbar_icon()`.
 - **SVG export bug**: pyqtgraph 0.14.0 `SVGExporter` crashes on space-separated path coords. Patched in `venv/Lib/site-packages/pyqtgraph/exporters/SVGExporter.py`.
 - **Icon loading**: `assets/icon_b64.txt` stores base64-encoded PNG, loaded at runtime. `assets/app_icon.ico` used for Win32 API and PyInstaller exe icon.

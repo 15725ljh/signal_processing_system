@@ -32,7 +32,7 @@
 │   ├── test_case6.cpp          # Case6独立ISR测试(已从主构建排除)
 │   └── signal_processing_core.cpp # 共享库：三个入口函数封装(供 GUI 使用)
 └── bindings/
-    └── signal_processing_bind.cpp # pybind11 绑定（薄适配层，供 GUI_signal_processing 使用）
+    └── signal_processing_bind.cpp # pybind11 绑定（薄适配层，供 04_GUI_signal_processing 使用）
 ```
 
 ## 运行流程

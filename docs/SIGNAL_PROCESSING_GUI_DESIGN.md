@@ -1,6 +1,6 @@
-# GUI_signal_processing - 雷达信号处理系统
+# 04_GUI_signal_processing - 雷达信号处理系统
 
-> **注意**: 本文档描述的是 `GUI_signal_processing/`（信号处理 GUI）。项目中还有三个独立的 GUI：`GUI_waveform/`（波形生成）、`GUI_jamming/`（干扰生成）、`GUI_detection/`（干扰识别与抑制），其设计文档分别见 [WAVEFORM_GUI_DESIGN.md](WAVEFORM_GUI_DESIGN.md)、[JAMMING_GUI_DESIGN.md](JAMMING_GUI_DESIGN.md)、[DETECTION_GUI_DESIGN.md](DETECTION_GUI_DESIGN.md)。
+> **注意**: 本文档描述的是 `04_GUI_signal_processing/`（信号处理 GUI）。项目中还有三个独立的 GUI：`01_GUI_waveform/`（波形生成）、`02_GUI_jamming/`（干扰生成）、`03_GUI_detection/`（干扰识别与抑制），其设计文档分别见 [WAVEFORM_GUI_DESIGN.md](WAVEFORM_GUI_DESIGN.md)、[JAMMING_GUI_DESIGN.md](JAMMING_GUI_DESIGN.md)、[DETECTION_GUI_DESIGN.md](DETECTION_GUI_DESIGN.md)。
 
 ## 功能概述
 
@@ -36,7 +36,7 @@ C++ 绑定层 (04_signal_processing/bindings/signal_processing_bind.cpp → sign
 ## 目录结构
 
 ```
-GUI_signal_processing/
+04_GUI_signal_processing/
 ├── app.py                          # 程序入口（图标加载、AppUserModelID 设置、lib/ 路径注册）
 ├── requirements.txt                # Python 依赖
 │
@@ -182,7 +182,7 @@ if fc > 0 and fs > 0:
 
 ### Windows 任务栏图标 (main_window.py)
 
-与 GUI_waveform 相同的三要素方案：
+与 01_GUI_waveform 相同的三要素方案：
 1. `SetCurrentProcessExplicitAppUserModelID` — 创建窗口前调用
 2. `SetClassLongPtrW(GCLP_HICONSM/HICON)` — 类级别图标设置
 3. `QTimer.singleShot(200, ...)` — showEvent 中延迟调用
@@ -250,7 +250,7 @@ GUI 按以下顺序搜索 `config.json`：
 
 四个 GUI 完全独立，各自封装不同的 C++ 模块：
 
-| 特性 | GUI_waveform | GUI_jamming | GUI_detection | GUI_signal_processing |
+| 特性 | 01_GUI_waveform | 02_GUI_jamming | 03_GUI_detection | 04_GUI_signal_processing |
 |------|-------------|-------------|---------------|---------------------|
 | 封装模块 | 模块01 | 模块02 | 模块03 | 模块04+01 |
 | 模式数 | 5 (Case1~5) | 10 (Case1~10) | 5 (干扰类型) | 6 (Case1~6) |
@@ -265,7 +265,7 @@ GUI 按以下顺序搜索 `config.json`：
 ## 与C++模块的关系
 
 ```
-GUI_signal_processing/app.py
+04_GUI_signal_processing/app.py
     → ui/main_window.py
         ├─ _run_processing_rd() (Case1~5)
         │   → signal_processing_cpp.run_processing_rd()

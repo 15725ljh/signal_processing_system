@@ -1,4 +1,4 @@
-# GUI_jamming - 雷达干扰生成系统
+# 02_GUI_jamming - 雷达干扰生成系统
 
 ## 功能概述
 
@@ -24,13 +24,13 @@ C++ 绑定层 (02_jamming_generation/bindings/jamming_bind.cpp → jamming_cpp.p
 - 不通过文件I/O传递数据，所有干扰数据通过内存 numpy 数组直接传递
 - C++ 绑定代码位于 `02_jamming_generation/bindings/`，GUI 目录不含 C++ 源码
 - 静态库 `libjamming_core.a` 由模块02构建，GUI 的 pybind11 编译时链接
-- 依赖 Eigen + FFTW3（与 GUI_waveform 仅依赖 Eigen 不同）
+- 依赖 Eigen + FFTW3（与 01_GUI_waveform 仅依赖 Eigen 不同）
 - 支持 macOS (.app) 和 Windows (.exe) 双平台打包
 
 ## 目录结构
 
 ```
-GUI_jamming/
+02_GUI_jamming/
 ├── app.py                          # 程序入口（图标加载、AppUserModelID 设置、lib/ 路径注册）
 ├── requirements.txt                # Python 依赖
 │
@@ -139,7 +139,7 @@ GUI_jamming/
 
 ### Windows 任务栏图标 (main_window.py)
 
-与 GUI_waveform 相同的三要素方案：
+与 01_GUI_waveform 相同的三要素方案：
 1. `SetCurrentProcessExplicitAppUserModelID` — 创建窗口前调用
 2. `SetClassLongPtrW(GCLP_HICONSM/HICON)` — 类级别图标设置
 3. `QTimer.singleShot(200, ...)` — showEvent 中延迟调用
@@ -182,11 +182,11 @@ GUI 按以下顺序搜索 `config.json`：
 - pybind11 (编译时)
 - PyInstaller (打包时)
 
-## 与 GUI_waveform 的关系
+## 与 01_GUI_waveform 的关系
 
 两个 GUI 完全独立，各自封装一个 C++ 模块：
 
-| 特性 | GUI_waveform | GUI_jamming |
+| 特性 | 01_GUI_waveform | 02_GUI_jamming |
 |------|-------------|-------------|
 | 封装模块 | 模块01 (波形生成) | 模块02 (干扰生成) |
 | 模式数 | 5 (Case1~5) | 10 (Case1~10) |

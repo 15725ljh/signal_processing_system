@@ -5,7 +5,7 @@
 ## 目录结构
 
 ```
-GUI_jamming/
+02_GUI_jamming/
 ├── app.py                          # 程序入口
 ├── requirements.txt                # Python 依赖
 │
@@ -100,7 +100,7 @@ GUI_jamming/
 
 ## 配置
 
-GUI_jamming 读取项目根目录的 `../config.json`，使用 `system.*` 和 `jamming.*` 配置节。
+02_GUI_jamming 读取项目根目录的 `../config.json`，使用 `system.*` 和 `jamming.*` 配置节。
 参数修改后点击"运行"即时生效。
 也支持通过命令行参数指定配置路径：`python app.py /path/to/config.json`。
 
@@ -123,7 +123,7 @@ GUI_jamming 读取项目根目录的 `../config.json`，使用 `system.*` 和 `j
 ### 快速开始
 
 ```bash
-cd GUI_jamming
+cd 02_GUI_jamming
 
 # 1. 安装依赖（首次）
 bash scripts/build.sh setup
@@ -161,7 +161,7 @@ cmake --version           # 应有输出
 ### 一键构建 (推荐)
 
 ```cmd
-cd GUI_jamming
+cd 02_GUI_jamming
 python -m venv venv
 venv\Scripts\activate
 pip install -r requirements.txt
@@ -181,7 +181,7 @@ cmake --build . --config Release --target jamming_core
 
 **第 2 步：编译 C++ 绑定模块**
 ```cmd
-cd GUI_jamming
+cd 02_GUI_jamming
 venv\Scripts\activate
 
 REM 获取头文件路径
@@ -203,7 +203,7 @@ g++ -O3 -std=c++17 -shared ^
 
 **第 3 步：打包 .exe**
 ```cmd
-cd GUI_jamming
+cd 02_GUI_jamming
 venv\Scripts\activate
 pyinstaller --clean --noconfirm scripts\雷达干扰生成系统_win.spec
 ```
@@ -224,7 +224,7 @@ pyinstaller --clean --noconfirm scripts\雷达干扰生成系统_win.spec
 02_jamming_generation/
   src/jamming_core.cpp ──── 编译器 ──→ libjamming_core.a (依赖 Eigen + FFTW3)
   bindings/jamming_bind.cpp ─┘             ↕ pybind11
-                                    jamming_cpp.pyd / .so (位于 GUI_jamming/lib/ 目录)
+                                    jamming_cpp.pyd / .so (位于 02_GUI_jamming/lib/ 目录)
 
 core/*.py ── 直接 import ──→ 配置管理、工具函数（纯 Python，无需编译）
 

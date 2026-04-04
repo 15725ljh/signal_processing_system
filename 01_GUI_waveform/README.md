@@ -5,7 +5,7 @@
 ## 目录结构
 
 ```
-GUI_waveform/
+01_GUI_waveform/
 ├── app.py                          # 程序入口
 ├── requirements.txt                # Python 依赖
 │
@@ -84,7 +84,7 @@ GUI_waveform/
 
 ## 配置
 
-GUI_waveform 读取项目根目录的 `../config.json`，参数修改后点击"运行"即时生效。
+01_GUI_waveform 读取项目根目录的 `../config.json`，参数修改后点击"运行"即时生效。
 也支持通过命令行参数指定配置路径：`python app.py /path/to/config.json`。
 
 ---
@@ -106,7 +106,7 @@ GUI_waveform 读取项目根目录的 `../config.json`，参数修改后点击"�
 ### 快速开始
 
 ```bash
-cd GUI_waveform
+cd 01_GUI_waveform
 
 # 1. 安装依赖（首次）
 bash scripts/build.sh setup
@@ -144,7 +144,7 @@ cmake --version           # 应有输出
 ### 一键构建 (推荐)
 
 ```cmd
-cd GUI_waveform
+cd 01_GUI_waveform
 python -m venv venv
 venv\Scripts\activate
 pip install -r requirements.txt
@@ -164,7 +164,7 @@ cmake --build . --config Release --target waveform_core
 
 **第 2 步：编译 C++ 绑定模块**
 ```cmd
-cd GUI_waveform
+cd 01_GUI_waveform
 venv\Scripts\activate
 
 REM 获取头文件路径
@@ -184,7 +184,7 @@ g++ -O3 -std=c++17 -shared ^
 
 **第 3 步：打包 .exe**
 ```cmd
-cd GUI_waveform
+cd 01_GUI_waveform
 venv\Scripts\activate
 pyinstaller --clean --noconfirm scripts\雷达波形生成系统_win.spec
 ```
@@ -205,7 +205,7 @@ pyinstaller --clean --noconfirm scripts\雷达波形生成系统_win.spec
 01_waveform_generation/
   src/waveform_core.cpp ──── 编译器 ──→ libwaveform_core.a (仅依赖 Eigen)
   bindings/waveform_bind.cpp ─┘             ↕ pybind11
-                                    waveform_cpp.pyd / .so (位于 GUI_waveform/lib/ 目录)
+                                    waveform_cpp.pyd / .so (位于 01_GUI_waveform/lib/ 目录)
 
 core/*.py ── 直接 import ──→ 配置管理、工具函数（纯 Python，无需编译）
 

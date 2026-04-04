@@ -134,10 +134,10 @@ signal_processing_system/
 ├── 02_jamming_generation/      # 模块2: 干扰生成(10种模式)
 ├── 03_jamming_detection_suppression/ # 模块3: 干扰识别与抑制(5种类型)
 ├── 04_signal_processing/       # 模块4: 信号处理(6种模式)
-├── GUI_waveform/               # PySide6 GUI (链接模块01静态库)
-├── GUI_jamming/                # PySide6 GUI (链接模块02静态库)
-├── GUI_detection/              # PySide6 GUI (链接模块03静态库)
-├── GUI_signal_processing/      # PySide6 GUI (链接模块04+01静态库)
+├── 01_GUI_waveform/               # PySide6 GUI (链接模块01静态库)
+├── 02_GUI_jamming/                # PySide6 GUI (链接模块02静态库)
+├── 03_GUI_detection/              # PySide6 GUI (链接模块03静态库)
+├── 04_GUI_signal_processing/      # PySide6 GUI (链接模块04+01静态库)
 ├── build_all.bat               # 一键构建全部 4 个 GUI exe
 ├── docs/                       # 统一文档目录
 └── output/                     # 运行输出目录
@@ -152,10 +152,10 @@ signal_processing_system/
 | [干扰生成](docs/02_jamming_generation.md) | 模块 02 详解 |
 | [检测抑制](docs/03_jamming_detection_suppression.md) | 模块 03 详解 |
 | [信号处理](docs/04_signal_processing.md) | 模块 04 详解 |
-| [波形生成 GUI 设计](docs/WAVEFORM_GUI_DESIGN.md) | GUI_waveform 界面文档 |
-| [干扰生成 GUI 设计](docs/JAMMING_GUI_DESIGN.md) | GUI_jamming 界面文档 |
-| [干扰识别 GUI 设计](docs/DETECTION_GUI_DESIGN.md) | GUI_detection 界面文档 |
-| [信号处理 GUI 设计](docs/SIGNAL_PROCESSING_GUI_DESIGN.md) | GUI_signal_processing 界面文档 |
+| [波形生成 GUI 设计](docs/WAVEFORM_GUI_DESIGN.md) | 01_GUI_waveform 界面文档 |
+| [干扰生成 GUI 设计](docs/JAMMING_GUI_DESIGN.md) | 02_GUI_jamming 界面文档 |
+| [干扰识别 GUI 设计](docs/DETECTION_GUI_DESIGN.md) | 03_GUI_detection 界面文档 |
+| [信号处理 GUI 设计](docs/SIGNAL_PROCESSING_GUI_DESIGN.md) | 04_GUI_signal_processing 界面文档 |
 
 ## License
 

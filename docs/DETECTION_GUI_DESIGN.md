@@ -1,6 +1,6 @@
-# GUI_detection - 雷达干扰识别与抑制系统
+# 03_GUI_detection - 雷达干扰识别与抑制系统
 
-> **注意**: 本文档描述的是 `GUI_detection/`（干扰识别与抑制 GUI）。项目中还有三个独立的 GUI：`GUI_waveform/`（波形生成）、`GUI_jamming/`（干扰生成）、`GUI_signal_processing/`（信号处理），其设计文档分别见 [WAVEFORM_GUI_DESIGN.md](WAVEFORM_GUI_DESIGN.md)、[JAMMING_GUI_DESIGN.md](JAMMING_GUI_DESIGN.md)、[SIGNAL_PROCESSING_GUI_DESIGN.md](SIGNAL_PROCESSING_GUI_DESIGN.md)。
+> **注意**: 本文档描述的是 `03_GUI_detection/`（干扰识别与抑制 GUI）。项目中还有三个独立的 GUI：`01_GUI_waveform/`（波形生成）、`02_GUI_jamming/`（干扰生成）、`04_GUI_signal_processing/`（信号处理），其设计文档分别见 [WAVEFORM_GUI_DESIGN.md](WAVEFORM_GUI_DESIGN.md)、[JAMMING_GUI_DESIGN.md](JAMMING_GUI_DESIGN.md)、[SIGNAL_PROCESSING_GUI_DESIGN.md](SIGNAL_PROCESSING_GUI_DESIGN.md)。
 
 ## 功能概述
 
@@ -33,7 +33,7 @@ C++ 绑定层 (03_jamming_detection_suppression/bindings/detection_bind.cpp → 
 ## 目录结构
 
 ```
-GUI_detection/
+03_GUI_detection/
 ├── app.py                          # 程序入口（图标加载、AppUserModelID 设置、lib/ 路径注册）
 ├── requirements.txt                # Python 依赖
 │
@@ -183,7 +183,7 @@ dv = fftshift(fftfreq(cpiNum, 1/prf)) * lambda / 2   # 速度 (m/s)
 
 ### Windows 任务栏图标 (main_window.py)
 
-与 GUI_waveform 相同的三要素方案：
+与 01_GUI_waveform 相同的三要素方案：
 1. `SetCurrentProcessExplicitAppUserModelID` — 创建窗口前调用
 2. `SetClassLongPtrW(GCLP_HICONSM/HICON)` — 类级别图标设置
 3. `QTimer.singleShot(200, ...)` — showEvent 中延迟调用
@@ -240,7 +240,7 @@ GUI 按以下顺序搜索 `config.json`：
 
 四个 GUI 完全独立，各自封装不同的 C++ 模块：
 
-| 特性 | GUI_waveform | GUI_jamming | GUI_detection | GUI_signal_processing |
+| 特性 | 01_GUI_waveform | 02_GUI_jamming | 03_GUI_detection | 04_GUI_signal_processing |
 |------|-------------|-------------|---------------|---------------------|
 | 封装模块 | 模块01 | 模块02 | 模块03 | 模块04+01 |
 | 模式数 | 5 (Case1~5) | 10 (Case1~10) | 5 (干扰类型) | 6 (Case1~6) |
@@ -255,9 +255,9 @@ GUI 按以下顺序搜索 `config.json`：
 ## 与C++模块的关系
 
 ```
-GUI_detection/app.py
+03_GUI_detection/app.py
     → ui/main_window.py (_run_detection_cpp)
-        → detection_cpp.pyd / .so (pybind11, 位于 GUI_detection/lib/ 目录)
+        → detection_cpp.pyd / .so (pybind11, 位于 03_GUI_detection/lib/ 目录)
             → 03_jamming_detection_suppression/bindings/detection_bind.cpp
                 → libdetection_core.a (静态库, 来自模块03)
                     → C++ detection_core.cpp (检测+分离流水线封装)

@@ -97,10 +97,10 @@ signal_processing_system/
 │   └── bindings/               # pybind11 绑定(jamming_bind.cpp, 供GUI使用)
 ├── 03_jamming_detection_suppression/ # 模块3: 干扰识别与抑制(5种类型)
 ├── 04_signal_processing/       # 模块4: 信号处理(6种模式)
-├── GUI_waveform/               # PySide6 GUI(链接模块01静态库)
-├── GUI_jamming/                # PySide6 GUI(链接模块02静态库)
-├── GUI_detection/              # PySide6 GUI(链接模块03静态库)
-├── GUI_signal_processing/      # PySide6 GUI(链接模块04+01静态库)
+├── 01_GUI_waveform/               # PySide6 GUI(链接模块01静态库)
+├── 02_GUI_jamming/                # PySide6 GUI(链接模块02静态库)
+├── 03_GUI_detection/              # PySide6 GUI(链接模块03静态库)
+├── 04_GUI_signal_processing/      # PySide6 GUI(链接模块04+01静态库)
 └── output/                     # 统一输出目录
 ```
 
@@ -133,10 +133,10 @@ signal_processing_system/
   fc=35GHz, B=80MHz, R0=1000m, nrn=2048
   自含 EchoGenerator + JammingSimulator
 
-GUI_waveform (PySide6界面) ← 封装模块01(波形生成)，通过pybind11直接调用C++
-  GUI_jamming (PySide6界面) ← 封装模块02(干扰生成)，通过pybind11直接调用C++
-  GUI_detection (PySide6界面) ← 封装模块03(干扰识别与抑制)，通过pybind11直接调用C++
-  GUI_signal_processing (PySide6界面) ← 封装模块04(信号处理)+模块01(波形生成)，通过pybind11直接调用C++
+01_GUI_waveform (PySide6界面) ← 封装模块01(波形生成)，通过pybind11直接调用C++
+  02_GUI_jamming (PySide6界面) ← 封装模块02(干扰生成)，通过pybind11直接调用C++
+  03_GUI_detection (PySide6界面) ← 封装模块03(干扰识别与抑制)，通过pybind11直接调用C++
+  04_GUI_signal_processing (PySide6界面) ← 封装模块04(信号处理)+模块01(波形生成)，通过pybind11直接调用C++
   四个GUI独立运行，不读写.dat文件，数据通过内存numpy数组传递
 ```
 
