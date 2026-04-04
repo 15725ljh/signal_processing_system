@@ -10,27 +10,28 @@
 
 ## 目录结构概览
 
+> **注意**：C++ 源码已从仓库移除，备份为加密 zip 包（见下方）。4 个 C++ 模块文件夹（01~04）需解压 zip 后才能使用。
+
 ```
 signal_processing_system/
-├── CMakeLists.txt                  # 顶层构建入口(add_subdirectory ×4)
 ├── config.json                     # 外部参数配置文件(所有模块共享)
-├── cmake/FindLibraries.cmake       # 库自动检测(Eigen/FFTW/nlohmann, 优先本地 > 系统安装)
-├── common/Config.h                 # 配置管理器(单例，JSON解析，智能寻址)
 ├── docs/                           # 统一文档目录
 ├── third_party/                    # 本地第三方库
 │   ├── nlohmann/json.hpp           # 自实现迷你JSON解析器(~215行, 已包含)
 │   ├── eigen/                      # Eigen 3.4.0 (header-only, 已包含)
 │   └── fftw-install/               # FFTW 3.3.10 (需编译)
 ├── output/                         # 运行输出目录(运行程序后生成)
-├── 01_waveform_generation/         # 模块1: 波形生成(5种模式) + 静态库
-├── 02_jamming_generation/          # 模块2: 干扰生成(10种模式)
-├── 03_jamming_detection_suppression/ # 模块3: 干扰识别与抑制(5种类型)
-├── 04_signal_processing/           # 模块4: 信号处理(6种模式)
+├── 01_waveform_generation.zip      # 模块1加密备份 (密码: xidian_LIJINGHENG)
+├── 02_jamming_generation.zip       # 模块2加密备份
+├── 03_jamming_detection_suppression.zip  # 模块3加密备份
+├── 04_signal_processing.zip        # 模块4加密备份
 ├── 01_GUI_waveform/                   # PySide6 GUI (波形生成)
 ├── 02_GUI_jamming/                    # PySide6 GUI (干扰生成)
 ├── 03_GUI_detection/                  # PySide6 GUI (干扰识别与抑制)
 └── 04_GUI_signal_processing/          # PySide6 GUI (信号处理)
 ```
+
+解压 zip 后将生成对应的 C++ 模块文件夹（`01_waveform_generation/`、`02_jamming_generation/`、`03_jamming_detection_suppression/`、`04_signal_processing/`），包含 `CMakeLists.txt`、`cmake/`、`common/Config.h` 等构建所需文件。
 
 ---
 
@@ -116,6 +117,19 @@ third_party/
 
 ## 第二步：编译项目
 
+> **重要提示**：C++ 源码已从仓库移除，需先解压对应加密 zip 包才能编译。
+> 解压密码：`xidian_LIJINGHENG`
+>
+> ```bash
+> # 解压所有 C++ 模块（在项目根目录执行）
+> 7z x -pxidian_LIJINGHENG 01_waveform_generation.zip
+> 7z x -pxidian_LIJINGHENG 02_jamming_generation.zip
+> 7z x -pxidian_LIJINGHENG 03_jamming_detection_suppression.zip
+> 7z x -pxidian_LIJINGHENG 04_signal_processing.zip
+> ```
+>
+> 解压后将生成 `01_waveform_generation/`、`02_jamming_generation/`、`03_jamming_detection_suppression/`、`04_signal_processing/` 四个文件夹，之后按下方步骤编译。
+
 ### 方式一：各模块独立构建（推荐）
 
 每个模块在自己的 `build/` 目录中独立构建：
@@ -187,6 +201,8 @@ cmake --build . --target jamming_det_sup
 
 ### 库检测优先级
 
+> 以下 `cmake/FindLibraries.cmake` 位于 C++ 模块 zip 包内，解压后存在于各模块目录中。
+
 `cmake/FindLibraries.cmake` 按以下顺序查找库：
 
 1. `third_party/xxx-install/` (本地编译，**推荐**)
@@ -230,6 +246,8 @@ cd build && ./01_waveform_generation/waveform_gen
 ---
 
 ## 第四步：运行程序
+
+> **注意**：以下运行命令需要先完成第二步编译（即已解压 zip 并成功构建 C++ 模块）。
 
 所有模块自动遍历全部模式，无需人工输入。运行后输出文件统一存放到 `output/` 目录。
 
@@ -337,12 +355,23 @@ cd signal_processing_system && rm -rf build && mkdir build && cd build && cmake 
 
 ## 完整一键脚本 (macOS/Linux)
 
+> **注意**：运行此脚本前，需先解压 4 个 C++ 模块的加密 zip 包（密码：`xidian_LIJINGHENG`），
+> 使 `01_waveform_generation/`、`02_jamming_generation/`、`03_jamming_detection_suppression/`、`04_signal_processing/` 目录存在。
+
 ```bash
 #!/bin/bash
 set -e
 
 PROJECT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$PROJECT_DIR"
+
+# 检查 C++ 模块目录是否存在，不存在则提示解压 zip
+for mod in 01_waveform_generation 02_jamming_generation 03_jamming_detection_suppression 04_signal_processing; do
+    if [ ! -d "$PROJECT_DIR/$mod" ]; then
+        echo "错误: 目录 $mod/ 不存在，请先解压对应的加密 zip 包（密码: xidian_LIJINGHENG）"
+        exit 1
+    fi
+done
 
 echo "=== 1. 编译FFTW ==="
 cd third_party
@@ -408,6 +437,8 @@ cd 04_GUI_signal_processing && pip install -r requirements.txt && python app.py
 
 ### Windows 一键打包为 exe
 
+> **注意**：打包前需先解压 4 个 C++ 模块的加密 zip 包（密码：`xidian_LIJINGHENG`），使 C++ 源码目录存在。
+
 ```bash
 # 先构建 4 个 C++ 静态库
 cd 01_waveform_generation && mkdir -p build && cd build && cmake .. && cmake --build .
@@ -447,11 +478,12 @@ cd 04_GUI_signal_processing && scripts\build.bat
 
 ### GUI 构建前置条件
 
+- 对应模块的 C++ 源码已解压（解压加密 zip 包，密码：`xidian_LIJINGHENG`）
+- 对应模块的 C++ 静态库已构建完成
 - Python 3.13+
 - pybind11（编译时需要）
 - PySide6, pyqtgraph, numpy, scipy（运行时）
 - PyInstaller（打包时，可选）
-- 对应模块的 C++ 静态库已构建完成
 
 ### GUI 可视化功能
 

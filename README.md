@@ -57,35 +57,28 @@
 - **热配置** — 修改 `config.json` 即时生效，支持 `//` 和 `#` 行注释
 - **级联处理** — 模块间通过 `.dat` 文件传递数据，模块 02 支持 10 种干扰的级联叠加
 - **Windows 原生** — 针对 Windows x64 编译，内置 FFTW 源码，MSVC/MinGW 工具链
-- **GUI 界面** — 四个独立 PySide6 桌面应用：波形生成 + 干扰生成 + 干扰识别 + 信号处理，pybind11 直调 C++ 引擎，支持 PyInstaller 打包为独立 exe
+- **GUI 界面** — 四个独立 PySide6 桌面应用：波形生成 + 干扰生成 + 干扰识别 + 信号处理，pybind11 直调 C++ 引擎，支持 PyInstaller 打包为单文件 exe
 - **轻量依赖** — 仅依赖 Eigen 和 FFTW 两个第三方库，JSON 解析和 Bessel 函数为自实现
 
 ## 快速开始
 
+### GUI 应用（推荐）
+
 ```bash
-# 1. 克隆仓库 (Windows 分支)
+# 克隆仓库
 git clone -b feature/all-guis-windows https://github.com/15725ljh/signal_processing_system.git
 cd signal_processing_system
 
-# 2. 安装依赖
-#    Eigen: 解压至 third_party/eigen/
-#    FFTW:  已内置 third_party/fftw-3.3.10/ 源码，CMake 自动编译
-
-# 3. 构建 (MSVC 或 MinGW)
-mkdir build && cd build
-cmake .. -G "MinGW Makefiles"   # 或 -G "Visual Studio 17 2022"
-cmake --build . -j%NUMBER_OF_PROCESSORS%
-
-# 4. 运行
-01_waveform_generation\waveform_gen.exe
-02_jamming_generation\jamming_gen.exe
-03_jamming_detection_suppression\jamming_det_sup.exe
-04_signal_processing\signal_proc.exe
-./01_waveform_generation/waveform_gen
-./02_jamming_generation/jamming_gen
-./03_jamming_detection_suppression/jamming_det_sup
-./04_signal_processing/signal_proc
+# 运行 GUI (需要 Python 3.13+)
+cd 01_GUI_waveform && pip install -r requirements.txt && python app.py
+cd 02_GUI_jamming && pip install -r requirements.txt && python app.py
+cd 03_GUI_detection && pip install -r requirements.txt && python app.py
+cd 04_GUI_signal_processing && pip install -r requirements.txt && python app.py
 ```
+
+### C++ 命令行
+
+C++ 源码已从仓库移除，备份为加密 zip 文件。解压后按 `docs/BUILD_GUIDE.md` 编译运行。
 
 > 详细构建指南见 [docs/BUILD_GUIDE.md](docs/BUILD_GUIDE.md)
 
@@ -120,24 +113,19 @@ cmake --build . -j%NUMBER_OF_PROCESSORS%
 
 ```
 signal_processing_system/
-├── CMakeLists.txt              # 顶层构建入口(add_subdirectory ×4)
 ├── config.json                 # 外部参数配置文件(所有模块共享)
-├── cmake/
-│   └── FindLibraries.cmake     # 库自动检测(Eigen/FFTW/nlohmann)
-├── common/
-│   └── Config.h                # 配置管理器(单例，JSON解析，智能寻址)
 ├── third_party/
 │   ├── nlohmann/json.hpp       # 自实现迷你JSON解析器(~215行)
 │   ├── eigen/                  # Eigen 3.4.0 (header-only)
 │   └── fftw-install/           # FFTW 3.3.10 (需编译)
-├── 01_waveform_generation/     # 模块1: 波形生成 + libwaveform_core.a 静态库
-├── 02_jamming_generation/      # 模块2: 干扰生成(10种模式)
-├── 03_jamming_detection_suppression/ # 模块3: 干扰识别与抑制(5种类型)
-├── 04_signal_processing/       # 模块4: 信号处理(6种模式)
-├── 01_GUI_waveform/               # PySide6 GUI (链接模块01静态库)
-├── 02_GUI_jamming/                # PySide6 GUI (链接模块02静态库)
-├── 03_GUI_detection/              # PySide6 GUI (链接模块03静态库)
-├── 04_GUI_signal_processing/      # PySide6 GUI (链接模块04+01静态库)
+├── 01_GUI_waveform/               # PySide6 GUI (波形生成, 链接 libwaveform_core.a)
+├── 02_GUI_jamming/                # PySide6 GUI (干扰生成, 链接 libjamming_core.a)
+├── 03_GUI_detection/              # PySide6 GUI (干扰识别, 链接 libdetection_core.a)
+├── 04_GUI_signal_processing/      # PySide6 GUI (信号处理, 链接 libsignal_processing_core.a + libwaveform_core.a)
+├── 01_waveform_generation.zip     # 模块1 C++ 源码备份 (加密)
+├── 02_jamming_generation.zip      # 模块2 C++ 源码备份 (加密)
+├── 03_jamming_detection_suppression.zip  # 模块3 C++ 源码备份 (加密)
+├── 04_signal_processing.zip       # 模块4 C++ 源码备份 (加密)
 ├── build_all.bat               # 一键构建全部 4 个 GUI exe
 ├── docs/                       # 统一文档目录
 └── output/                     # 运行输出目录

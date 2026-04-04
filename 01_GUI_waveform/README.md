@@ -98,7 +98,8 @@
 - macOS + Xcode Command Line Tools（`xcode-select --install`）
 - Python 3.13+
 - `../third_party/` 存在（包含 eigen）
-- 模块01静态库已构建：
+- **C++ 源码已从仓库移除**，`lib/` 目录中已包含预编译的 `.pyd/.so` 文件，可直接运行 GUI。如需重新编译静态库，需先解压对应的加密 zip 备份（密码见 `docs/BUILD_GUIDE.md`）恢复 C++ 源码。
+- 模块01静态库已构建（需先恢复 C++ 源码）：
   ```bash
   cd 01_waveform_generation && mkdir -p build && cd build && cmake .. && cmake --build . --target waveform_core
   ```
@@ -133,6 +134,7 @@ bash scripts/build.sh all
 1. **Python 3.13+** — 从 [python.org](https://www.python.org/downloads/) 下载安装，安装时勾选 "Add Python to PATH"
 2. **MinGW-w64 (GCC/G++)** — 推荐 [winlibs.com](https://winlibs.com/) 下载 UCRT runtime 版本，解压后将 `bin` 目录加入 PATH
 3. **CMake** — 从 [cmake.org](https://cmake.org/download/) 下载安装
+4. **C++ 源码** — 已从仓库移除，`lib/` 目录中已包含预编译的 `.pyd` 文件，可直接运行 GUI。如需重新编译静态库，需先解压对应的加密 zip 备份（密码见 `docs/BUILD_GUIDE.md`）恢复 C++ 源码。
 
 验证环境：
 ```cmd
@@ -153,6 +155,8 @@ scripts\build.bat
 ```
 
 ### 分步构建
+
+> **注意**：C++ 源码已从仓库移除，以下步骤需要先解压对应的加密 zip 备份（密码见 `docs/BUILD_GUIDE.md`）恢复 `01_waveform_generation/` 目录。如无需重新编译，可直接使用 `lib/` 中预编译的绑定文件运行 GUI。
 
 **第 1 步：构建模块01静态库**
 ```cmd
