@@ -62,7 +62,7 @@ static void case1(const WaveformParams& p, const DerivedParams& d,
         int gg = dis(gen);
         r.f(k) = p.fc + gg * p.case1_delta_f;
 
-        double R = p.Rs + p.Vr * k / p.prf;
+        double R = p.Rs - p.Vr * k / p.prf;  // Vr>0 = approaching
         ArrayXd tau = d.tnrn.array() - 2 * R / c_light;
         ArrayXd win = (tau >= -p.Tp / 2).cast<double>() * (tau <= p.Tp / 2).cast<double>();
 
@@ -90,7 +90,7 @@ static void case2(const WaveformParams& p, const DerivedParams& d,
 
     for (int i = 0; i < p.nan1; ++i) {
         double tm = static_cast<double>(i) / p.prf;
-        double R = p.Rs + p.Vr * tm;
+        double R = p.Rs - p.Vr * tm;  // Vr>0 = approaching
 
         ArrayXd tau = d.tnrn.array() - 2 * R / c_light;
         ArrayXd win = (tau >= -p.Tp / 2).cast<double>() * (tau <= p.Tp / 2).cast<double>();
@@ -221,7 +221,7 @@ static void case5(const WaveformParams& p, const DerivedParams& d,
         int gg = dis_gg(gen);
         r.f(k) = p.fc + gg * p.case5_delta_f;
 
-        double R = p.Rs + p.Vr * k / p.prf;
+        double R = p.Rs - p.Vr * k / p.prf;  // Vr>0 = approaching
         ArrayXd tau = d.tnrn.array() - 2 * R / c_light;
         ArrayXd win = (tau >= -p.Tp / 2).cast<double>() * (tau <= p.Tp / 2).cast<double>();
 

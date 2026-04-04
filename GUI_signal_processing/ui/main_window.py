@@ -1,3 +1,11 @@
+"""
+主窗口 — 信号处理 GUI (模块04)
+
+两个 C++ 入口:
+  1. run_processing_rd(case_num, config_dict)        → ProcessingResultRD (Cases 1-5)
+  2. run_processing_decouple(jam_type, config_dict)  → ProcessingResultDecouple (Case 6)
+"""
+
 import json
 import os
 import shutil
@@ -8,7 +16,7 @@ from PySide6.QtWidgets import (
     QMainWindow, QSplitter, QFileDialog, QMenu, QMessageBox,
     QStatusBar, QLabel, QWidget, QVBoxLayout, QProgressBar,
 )
-from PySide6.QtCore import Qt, QThread, Signal, QTimer, QSettings
+from PySide6.QtCore import Qt, QThread, Signal, QTimer
 from PySide6.QtGui import QAction, QKeySequence, QFont, QIcon
 
 from ui.theme import LIGHT_STYLE, DARK_STYLE, _assets_dir
@@ -17,114 +25,110 @@ from ui.plot_panel import PlotPanel, apply_plot_theme
 from ui.console_panel import ConsolePanel
 from core.config_manager import ConfigManager
 
-import waveform_cpp
+import signal_processing_cpp
 
 
-def _run_waveform_cpp(mode, params):
-    """Thin wrapper: flat params dict → waveform_cpp.run_waveform()"""
-    system_cfg = {
-        "fc":   params.get("system.fc", 16e9),
-        "Tp":   params.get("system.Tp", 12e-6),
-        "B":    params.get("system.B", 40e6),
-        "prf":  params.get("system.prf", 10e3),
-        "Vr":   params.get("system.Vr", 50.0),
-        "Rs":   params.get("system.Rs", 10000.0),
-        "wr":   params.get("system.wr", 608.0),
-        "nan1": params.get("system.nan1", 64),
-    }
-    waveform_cfg = {
-        "case1_freq_hop.N":           params.get("waveform.case1_freq_hop.N", 10),
-        "case1_freq_hop.delta_f":     params.get("waveform.case1_freq_hop.delta_f", 40e6),
-        "case3_pri_jitter.prt":       params.get("waveform.case3_pri_jitter.prt", 1000e-6),
-        "case3_pri_jitter.amp":       params.get("waveform.case3_pri_jitter.amp", 1.0),
-        "case3_pri_jitter.jitter_us": params.get("waveform.case3_pri_jitter.jitter_us", 20),
-        "case4_hybrid.delta_f":       params.get("waveform.case4_hybrid.delta_f", 40e6),
-        "case4_hybrid.fcnum":         params.get("waveform.case4_hybrid.fcnum", 16),
-        "case4_hybrid.amp":           params.get("waveform.case4_hybrid.amp", 1.0),
-        "case4_hybrid.prt":           params.get("waveform.case4_hybrid.prt", 1000e-6),
-        "case4_hybrid.jitter_us":     params.get("waveform.case4_hybrid.jitter_us", 20),
-        "case5_combined.N":           params.get("waveform.case5_combined.N", 10),
-        "case5_combined.delta_f":     params.get("waveform.case5_combined.delta_f", 40e6),
-    }
-    result = waveform_cpp.run_waveform(mode, system_cfg, waveform_cfg)
+# ── C++ 调用包装 ──
+
+def _run_processing_rd_cpp(case_num, config_dict):
+    result = signal_processing_cpp.run_processing_rd(case_num, config_dict)
     return {
-        "radar_sig": result["radar_sig"],
-        "f": result.get("f", np.zeros(64)),
-        "phi1": result.get("phi1", np.zeros(64, dtype=complex)),
-        "freq_seq": result.get("freq_seq", np.zeros(64)),
-        "has_freq_hop": result.get("has_freq_hop", False),
-        "has_random_phase": result.get("has_random_phase", False),
-        "has_freq_seq": result.get("has_freq_seq", False),
+        "rd_map":       result["rd_map"],
+        "xi":           result["xi"],
+        "dv":           result["dv"],
+        "input_signal": result["input_signal"],
+        "nrn":          result["nrn"],
+        "nan1":         result["nan1"],
+        "case_num":     result["case_num"],
+        "elapsed":      result["elapsed"],
+        "log_output":   result.get("log_output", ""),
     }
+
+
+def _run_processing_decouple_cpp(jam_type, config_dict):
+    result = signal_processing_cpp.run_processing_decouple(jam_type, config_dict)
+    return {
+        "jam_signal":      result["jam_signal"],
+        "target_signal":   result["target_signal"],
+        "input_signal":    result["input_signal"],
+        "decouple_flag":   result["decouple_flag"],
+        "isr_dB":          result["isr_dB"],
+        "avg_threshold":   result["avg_threshold"],
+        "gaojiepu_count":  result["gaojiepu_count"],
+        "nrn":             result["nrn"],
+        "nan1":            result["nan1"],
+        "elapsed":         result["elapsed"],
+        "log_output":      result.get("log_output", ""),
+    }
+
+
+_JAMMING_TYPE_NAMES = {
+    1: "ISDJ 间歇采样直接转发",
+    2: "ISRJ 间歇采样重复转发",
+    3: "ISCJ 间歇采样循环转发",
+    4: "NBJ 窄带瞄频噪声",
+    5: "RDJ 距离欺骗干扰",
+}
+
+_FUNC_DISPLAY_NAMES = {
+    "processing_rd":      "距离-多普勒处理",
+    "processing_decouple": "时频干扰解耦",
+}
 
 
 class ComputeThread(QThread):
     logSignal = Signal(str, str)
-    progressSignal = Signal(int, int)
-    finishedSignal = Signal(object)
+    resultSignal = Signal(str, int, object)    # 每完成一个 case 发出
+    allFinishedSignal = Signal()               # 全部完成
     errorSignal = Signal(str)
 
-    def __init__(self, params, modes, parent=None):
+    def __init__(self, modes, config_dict, parent=None):
         super().__init__(parent)
-        self._params = params
-        self._modes = modes
-        self._stop_flag = False
+        self._modes = modes              # [(func_type, arg), ...]
+        self._config_dict = config_dict
 
     def run(self):
         try:
-            mode_names = {
-                1: "固定跳频波形",
-                2: "随机相位波形",
-                3: "脉冲重复间隔抖动波形",
-                4: "混合波形(跳频+抖动)",
-                5: "跳频+随机相位复合波形",
-            }
-
-            results = {}
             total = len(self._modes)
-            for idx, mode in enumerate(self._modes):
-                if self._stop_flag:
-                    self.logSignal.emit("计算已被用户中止。", "warning")
-                    break
-
-                self.logSignal.emit(f"开始计算 模式{mode}: {mode_names.get(mode, '')}", "header")
-                self.progressSignal.emit(idx, total)
+            for i, (func_type, arg) in enumerate(self._modes):
+                display_name = _FUNC_DISPLAY_NAMES.get(func_type, func_type)
+                self.logSignal.emit(f"[{i+1}/{total}] 开始: {display_name}", "header")
 
                 t0 = time.time()
-                result = _run_waveform_cpp(mode, self._params)
-                elapsed = time.time() - t0
+
+                if func_type == "processing_rd":
+                    self.logSignal.emit(f"Case {arg}", "info")
+                    result = _run_processing_rd_cpp(arg, self._config_dict)
+                elif func_type == "processing_decouple":
+                    jam_name = _JAMMING_TYPE_NAMES.get(arg, f"Type {arg}")
+                    self.logSignal.emit(f"Case 6 解耦, 干扰: {arg} ({jam_name})", "info")
+                    result = _run_processing_decouple_cpp(arg, self._config_dict)
+                else:
+                    self.errorSignal.emit(f"未知功能类型: {func_type}")
+                    return
+
+                elapsed_wall = time.time() - t0
 
                 if result.get("log_output"):
                     for line in result["log_output"].split("\n"):
                         if line.strip():
                             self.logSignal.emit(line, "info")
 
-                results[mode] = result
+                self.logSignal.emit(f"完成 (耗时 {elapsed_wall*1000:.1f} ms)", "success")
 
-                if result["radar_sig"] is not None:
-                    r = min(360, result["radar_sig"].shape[0] - 1)
-                    c_idx = min(32, result["radar_sig"].shape[1] - 1)
-                    self.logSignal.emit(
-                        f"Radar_Sig({r},{c_idx}) = {result['radar_sig'][r, c_idx]}", "info"
-                    )
+                self.resultSignal.emit(func_type, arg, result)
 
-                self.logSignal.emit(f"模式{mode} 完成 (耗时 {elapsed*1000:.1f} ms)", "success")
-
-            self.progressSignal.emit(total, total)
-            self.finishedSignal.emit(results)
+            self.allFinishedSignal.emit()
 
         except Exception as e:
             self.errorSignal.emit(str(e))
-
-    def stop(self):
-        self._stop_flag = True
 
 
 class MainWindow(QMainWindow):
 
     def __init__(self, config_path=None):
         super().__init__()
-        self.setWindowTitle("雷达波形生成系统 - 模块01")
+        self.setWindowTitle("雷达信号处理系统 - 模块04")
         icon_path = os.path.join(_assets_dir(), 'app_icon.ico')
         if os.path.exists(icon_path):
             self.setWindowIcon(QIcon(icon_path))
@@ -134,7 +138,9 @@ class MainWindow(QMainWindow):
 
         self._config = ConfigManager()
         self._compute_thread = None
-        self._last_results = None
+        self._last_result = None
+        self._last_func_type = None
+        self._last_arg = None
         self._current_theme = "light"
 
         self._setup_style()
@@ -160,27 +166,16 @@ class MainWindow(QMainWindow):
         self.setFont(font)
 
     def _toggle_theme(self, dark):
-        """Bug 7 fix: switch between light and dark themes."""
         theme = "dark" if dark else "light"
         self._current_theme = theme
         style = DARK_STYLE if dark else LIGHT_STYLE
         self.setStyleSheet(style)
-
-        # Update plot colors
         apply_plot_theme(theme)
-
-        # Update console colors
         self._console_panel.apply_theme(theme)
-
-        # Update derived labels in param panel
         for lbl in self._param_panel._derived_labels.values():
             lbl.apply_theme(theme)
-
-        # Refresh plots if data exists
-        if self._last_results:
-            modes = sorted(self._last_results.keys())
-            if modes:
-                self._plot_panel.update_plots(self._last_results, default_mode=modes[-1])
+        if self._last_result:
+            self._plot_panel.refresh_current()
 
     # ── Menu ──
 
@@ -240,7 +235,7 @@ class MainWindow(QMainWindow):
 
         self._param_panel = ParamPanel()
         self._param_panel.setMinimumWidth(360)
-        self._param_panel.setMaximumWidth(480)
+        self._param_panel.setMaximumWidth(500)
         self._param_panel.runRequested.connect(self._on_run)
         self._param_panel.stopRequested.connect(self._on_stop)
         self._param_panel.clearRequested.connect(self._on_clear)
@@ -277,11 +272,9 @@ class MainWindow(QMainWindow):
 
         self._status_bar.addPermanentWidget(QLabel("  "))
 
-        # Bug 6 fix: add actual progress bar widget
         self._progress_bar = QProgressBar()
         self._progress_bar.setFixedWidth(200)
         self._progress_bar.setFixedHeight(18)
-        self._progress_bar.setTextVisible(True)
         self._progress_bar.setRange(0, 100)
         self._progress_bar.setValue(0)
         self._progress_bar.setVisible(False)
@@ -366,15 +359,6 @@ class MainWindow(QMainWindow):
     def _apply_config_to_panel(self):
         flat = {}
         self._flatten_dict(self._config.get_all_params(), "", flat)
-        # Resolve null (meaning "use system B") for delta_f fields
-        B = flat.get("system.B", 40e6)
-        for null_key in [
-            "waveform.case1_freq_hop.delta_f",
-            "waveform.case4_hybrid.delta_f",
-            "waveform.case5_combined.delta_f",
-        ]:
-            if null_key not in flat:
-                flat[null_key] = B
         self._param_panel.set_params(flat)
 
     def _flatten_dict(self, d, prefix, result):
@@ -420,54 +404,60 @@ class MainWindow(QMainWindow):
         if self._compute_thread and self._compute_thread.isRunning():
             return
 
-        params = self._param_panel.get_all_params()
-        for key, val in params.items():
+        if not modes:
+            return
+
+        config_dict = self._param_panel.get_all_params()
+        for key, val in config_dict.items():
             self._config.set_param(key, val)
 
         derived = self._config.get_derived_params()
 
-        errors = self._validate_params(params, derived)
+        errors, warnings = self._validate_params(derived)
+        for w in warnings:
+            self._console_panel.append(w, "warning")
         if errors:
             for err in errors:
                 self._console_panel.append(err, "error")
             return
 
-        self._plot_panel.set_time_freq_axes(
-            derived["tnrn"], derived["fr"], derived["fc"],
-            fs=derived["fs"], gama=derived["gama"], prf=derived["prf"],
-        )
-
         self._param_panel.set_running(True)
         self._status_mode.setText("计算中...")
-        self._status_info.setText(f"模式: {modes}")
+        self._status_info.setText(f"共 {len(modes)} 个任务")
         self._progress_bar.setVisible(True)
         self._progress_bar.setValue(0)
 
         if self._compute_thread is not None:
             try:
                 self._compute_thread.logSignal.disconnect(self._on_log)
-                self._compute_thread.progressSignal.disconnect(self._on_progress)
-                self._compute_thread.finishedSignal.disconnect(self._on_compute_finished)
+                self._compute_thread.resultSignal.disconnect(self._on_case_finished)
+                self._compute_thread.allFinishedSignal.disconnect(self._on_all_finished)
                 self._compute_thread.errorSignal.disconnect(self._on_compute_error)
             except RuntimeError:
                 pass
 
-        self._compute_thread = ComputeThread(params, modes)
+        self._total_cases = len(modes)
+        self._completed_cases = 0
+        self._compute_thread = ComputeThread(modes, config_dict)
         self._compute_thread.logSignal.connect(self._on_log)
-        self._compute_thread.progressSignal.connect(self._on_progress)
-        self._compute_thread.finishedSignal.connect(self._on_compute_finished)
+        self._compute_thread.resultSignal.connect(self._on_case_finished)
+        self._compute_thread.allFinishedSignal.connect(self._on_all_finished)
         self._compute_thread.errorSignal.connect(self._on_compute_error)
 
         self._compute_thread.start()
 
-    def _validate_params(self, params, derived):
+    def _on_stop(self):
+        if self._compute_thread and self._compute_thread.isRunning():
+            self._compute_thread.terminate()
+            self._console_panel.append("正在停止计算...", "warning")
+
+    def _validate_params(self, derived):
         errors = []
-        Tp = derived["Tp"]
-        B = derived["B"]
-        prf = derived["prf"]
-        fs = derived["fs"]
-        nan1 = derived["nan1"]
-        prt = derived["prt"]
+        warnings = []
+        Tp  = derived.get("Tp", 12e-6)
+        B   = derived.get("B", 40e6)
+        prf = derived.get("prf", 10e3)
+        fs  = derived.get("fs", 120e6)
 
         if Tp <= 0:
             errors.append("错误: 脉冲宽度 Tp 必须大于 0")
@@ -477,33 +467,11 @@ class MainWindow(QMainWindow):
             errors.append("错误: 脉冲重复频率 prf 必须大于 0")
 
         if fs > 0 and B > 0 and fs < 2 * B:
-            errors.append(f"警告: 采样频率 fs={fs:.2e} Hz 低于奈奎斯特频率 2B={2*B:.2e} Hz，结果可能混叠")
+            warnings.append(
+                f"警告: 采样频率 fs={fs:.2e} Hz 低于奈奎斯特频率 2B={2*B:.2e} Hz"
+            )
 
-        fcnum = params.get("waveform.case4_hybrid.fcnum", 16)
-        if fcnum > 0 and nan1 % fcnum != 0:
-            errors.append(f"错误: 方位向脉冲数 nan1={nan1} 必须能被载频分组数 fcnum={fcnum} 整除")
-
-        jitter_us = params.get("waveform.case3_pri_jitter.jitter_us", 20)
-        jitter_s = jitter_us * 1e-6
-        if prt > 0 and jitter_s >= prt:
-            errors.append(f"错误: 抖动范围 ±{jitter_us}μs 超过了脉冲间隔 prt={prt*1e6:.1f}μs")
-
-        # Bug 4 fix: validate Case4 prt positivity explicitly
-        prt_4 = params.get("waveform.case4_hybrid.prt", 1000e-6)
-        if prt_4 <= 0:
-            errors.append("错误: Case4 脉冲间隔 prt 必须大于 0")
-        else:
-            jitter_us_4 = params.get("waveform.case4_hybrid.jitter_us", 20)
-            jitter_s_4 = jitter_us_4 * 1e-6
-            if jitter_s_4 >= prt_4:
-                errors.append(f"错误: Case4 抖动范围 ±{jitter_us_4}μs 超过了脉冲间隔 prt={prt_4*1e6:.1f}μs")
-
-        return errors
-
-    def _on_stop(self):
-        if self._compute_thread and self._compute_thread.isRunning():
-            self._compute_thread.stop()
-            self._console_panel.append("正在停止计算...", "warning")
+        return errors, warnings
 
     def _on_clear(self):
         self._plot_panel.clear_plots()
@@ -511,33 +479,56 @@ class MainWindow(QMainWindow):
 
     def _on_restore_defaults(self):
         self._plot_panel.clear_plots()
-        # Re-apply config.json values instead of hardcoded defaults
         self._apply_config_to_panel()
-        for cb in self._param_panel._case_checks.values():
-            cb.setChecked(True)
         self._console_panel.append("[参数] 已恢复为配置文件默认值。", "success")
 
     def _on_log(self, text, level="info"):
         self._console_panel.append(text, level)
 
-    def _on_progress(self, current, total):
-        if total > 0:
-            pct = int(current / total * 100)
-            self._progress_bar.setVisible(True)
-            self._progress_bar.setValue(pct)
-            self._status_info.setText(f"进度: {pct}% ({current}/{total})")
+    def _on_case_finished(self, func_type, arg, result):
+        self._last_result = result
+        self._last_func_type = func_type
+        self._last_arg = arg
 
-    def _on_compute_finished(self, results):
-        self._last_results = results
+        # 注入 fs 和 fc 到 result (供 plot_panel 使用)
+        derived = self._config.get_derived_params()
+        result["_fs"] = derived.get("fs", 120e6)
+        result["_fc"] = derived.get("fc", 16e9)
+
+        # 更新绘图
+        self._plot_panel.update_result(func_type, arg, result)
+
+        # 进度
+        self._completed_cases += 1
+        progress = int(self._completed_cases / self._total_cases * 100)
+        self._progress_bar.setValue(progress)
+
+        # 状态栏摘要
+        elapsed = result.get("elapsed", 0.0)
+        if func_type == "processing_rd":
+            nrn = result.get("nrn", 0)
+            nan1 = result.get("nan1", 0)
+            self._status_info.setText(
+                f"[{self._completed_cases}/{self._total_cases}] "
+                f"Case {arg}: RD map {nrn}x{nan1} | 耗时={elapsed*1000:.1f}ms"
+            )
+        elif func_type == "processing_decouple":
+            isr = result.get("isr_dB", 0.0)
+            gj_count = result.get("gaojiepu_count", 0)
+            nan1 = result.get("nan1", 0)
+            jam_name = _JAMMING_TYPE_NAMES.get(arg, f"Type {arg}")
+            self._status_info.setText(
+                f"[{self._completed_cases}/{self._total_cases}] "
+                f"Case 6: ISR={isr:.1f}dB | "
+                f"高阶谱={gj_count}/{nan1} | "
+                f"干扰: {jam_name} | 耗时={elapsed*1000:.1f}ms"
+            )
+
+    def _on_all_finished(self):
         self._param_panel.set_running(False)
         self._status_mode.setText("就绪")
         self._progress_bar.setVisible(False)
         self._progress_bar.setValue(0)
-
-        if results:
-            last_mode = list(results.keys())[-1]
-            self._plot_panel.update_plots(results, default_mode=last_mode)
-            self._status_info.setText(f"已完成 {len(results)} 个模式")
 
     def _on_compute_error(self, error_msg):
         self._param_panel.set_running(False)
@@ -555,20 +546,18 @@ class MainWindow(QMainWindow):
         QMessageBox.about(
             self,
             "关于",
-            "雷达波形生成系统\n"
-            "模块01: 波形生成\n\n"
-            "支持 5 种波形模式 (Case 1~5)\n"
-            "固定跳频 / 随机相位 / PRI抖动\n"
-            "混合波形 / 复合波形\n\n"
+            "雷达信号处理系统\n"
+            "模块04: 信号处理\n\n"
+            "功能:\n"
+            "  - 距离-多普勒处理 (Cases 1-5)\n"
+            "  - 时频干扰解耦 (Case 6)\n\n"
+            "干扰类型: ISDJ / ISRJ / ISCJ / NBJ / RDJ\n\n"
             f"当前主题: {theme_label}\n"
             "技术栈: PySide6 + pyqtgraph + numpy/scipy\n\n"
             "作者: XDU_LJH",
         )
 
     def _apply_win32_taskbar_icon(self):
-        """通过 Win32 API 设置窗口图标, 确保 Windows 11 任务栏正确显示。
-        同时设置窗口类图标 (SetClassLongPtrW) 和窗口图标 (WM_SETICON),
-        类图标比 WM_SETICON 更持久, 不易被 Qt 内部调用覆盖。"""
         if sys.platform != 'win32':
             return
         try:
@@ -620,13 +609,11 @@ class MainWindow(QMainWindow):
         super().showEvent(event)
         if not self._win32_icon_applied:
             self._win32_icon_applied = True
-            # 延迟执行: Qt 在 showEvent 之后可能内部重置图标,
-            # 用 QTimer.singleShot 确保 Win32 调用在 Qt 处理完毕后执行
             from PySide6.QtCore import QTimer
             QTimer.singleShot(200, self._apply_win32_taskbar_icon)
 
     def closeEvent(self, event):
         if self._compute_thread and self._compute_thread.isRunning():
-            self._compute_thread.stop()
+            self._compute_thread.terminate()
             self._compute_thread.wait(3000)
         event.accept()

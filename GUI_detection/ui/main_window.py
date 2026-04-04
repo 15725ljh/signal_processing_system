@@ -408,6 +408,9 @@ class MainWindow(QMainWindow):
             return
 
         self._plot_panel._fs = derived["fs"]
+        self._plot_panel._fc = derived["fc"]
+        self._plot_panel._gama = derived["Kr"]
+        self._plot_panel._prf = derived["prf"]
 
         self._param_panel.set_running(True)
         self._status_mode.setText("计算中...")

@@ -497,25 +497,6 @@ class ImagePlotWidget(QWidget):
         self._radar_sig = radar_sig
         self._render()
 
-    def update_levels(self):
-        sig = self._radar_sig
-        if sig is None:
-            return
-        if self._display_mode == 0:
-            data = sig.real[::-1]
-        elif self._display_mode == 1:
-            data = sig.imag[::-1]
-        elif self._display_mode == 2:
-            data = np.abs(sig)[::-1]
-        else:
-            data = np.angle(sig)[::-1]
-        vmin = np.min(data)
-        vmax = np.max(data)
-        if vmin >= vmax:
-            vmax = vmin + 1
-        self._img.setLevels([vmin, vmax])
-        self._lut.setLevels(vmin, vmax)
-
     def clear_data(self):
         self._img.clear()
         self._radar_sig = None
@@ -630,6 +611,159 @@ class STFTPlotWidget(QWidget):
         self._cache_key = None
 
 
+# ── 7. 距离-多普勒图 ──
+
+class RDMapPlotWidget(QWidget):
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+
+        pt = _pt()
+
+        self._layout_widget = pg.GraphicsLayoutWidget()
+        self._layout_widget.setBackground(pt["pg_bg"])
+        self._plot = self._layout_widget.addPlot(
+            title="距离-多普勒图",
+            axisItems={'left': pg.AxisItem('left'), 'bottom': pg.AxisItem('bottom')},
+        )
+        self._plot.showGrid(x=True, y=True, alpha=0.4)
+        _apply_axis_style(self._plot)
+        self._plot.getViewBox().setBackgroundColor(pt["viewbox_bg"])
+        _set_label(self._plot, "bottom", "速度", units="m/s")
+        _set_label(self._plot, "left", "距离", units="m")
+
+        self._img = pg.ImageItem()
+        jet_colors = [
+            (0.0,  (0, 0, 143)),   (0.12, (0, 0, 255)),
+            (0.25, (0, 127, 255)), (0.37, (0, 255, 255)),
+            (0.5,  (0, 255, 0)),   (0.62, (255, 255, 0)),
+            (0.75, (255, 127, 0)), (0.87, (255, 0, 0)),
+            (1.0,  (128, 0, 0)),
+        ]
+        self._jet_cmap = pg.ColorMap(
+            pos=[c[0] for c in jet_colors],
+            color=[c[1] for c in jet_colors],
+        )
+        self._img.setColorMap(self._jet_cmap)
+        self._plot.addItem(self._img)
+
+        self._lut = pg.HistogramLUTItem(image=self._img)
+        self._lut.gradient.setColorMap(self._jet_cmap)
+        self._layout_widget.addItem(self._lut)
+
+        # 十字准线
+        cross_color = pt.get("crosshair", "#fff")
+        self._vline = pg.InfiniteLine(angle=90, pen=pg.mkPen(cross_color, width=1, style=Qt.PenStyle.DashLine))
+        self._hline = pg.InfiniteLine(angle=0, pen=pg.mkPen(cross_color, width=1, style=Qt.PenStyle.DashLine))
+        self._vline.setVisible(False)
+        self._hline.setVisible(False)
+        self._plot.addItem(self._vline, ignoreBounds=True)
+        self._plot.addItem(self._hline, ignoreBounds=True)
+        self._crosshair = pg.TextItem(anchor=(0, 1), color=pt["crosshair_text"],
+                                      fill=pg.mkBrush(*pt["crosshair_fill"]))
+        self._crosshair.setFont(pg.QtGui.QFont("Menlo", 9, pg.QtGui.QFont.Weight.Bold))
+        self._crosshair.setVisible(False)
+        self._plot.addItem(self._crosshair, ignoreBounds=True)
+
+        self._rd_data = None
+        self._xi = None
+        self._dv = None
+        self._tnrn = None
+        self._gama = 0.0
+        self._fs = 0.0
+        self._fc = 0.0
+        self._prf = 10e3
+
+        def on_mouse(evt):
+            if self._rd_data is None:
+                return
+            pos = self._plot.getViewBox().mapSceneToView(evt)
+            if self._plot.getViewBox().sceneBoundingRect().contains(evt):
+                self._vline.setPos(pos.x())
+                self._hline.setPos(pos.y())
+                self._vline.setVisible(True)
+                self._hline.setVisible(True)
+                ix = np.argmin(np.abs(self._dv - pos.x()))
+                iy = np.argmin(np.abs(self._xi - pos.y()))
+                power = 20 * np.log10(np.abs(self._rd_data[iy, ix]) + 1e-15)
+                self._crosshair.setText(f"v={pos.x():.1f} m/s  r={pos.y():.1f} m  {power:.1f} dB")
+                self._crosshair.setPos(pos.x(), pos.y())
+                self._crosshair.setVisible(True)
+            else:
+                self._vline.setVisible(False)
+                self._hline.setVisible(False)
+                self._crosshair.setVisible(False)
+
+        self._plot.scene().sigMouseMoved.connect(on_mouse)
+
+        layout.addWidget(self._layout_widget, stretch=1)
+
+    def _compute_rd(self, matrix):
+        """去斜 → 距离向 FFT+fftshift → 多普勒向 FFT+fftshift."""
+        nrn, nan1 = matrix.shape
+        # 去斜 (de-chirp)
+        if self._tnrn is not None and self._gama > 0:
+            ref = np.exp(1j * np.pi * self._gama * self._tnrn ** 2)
+            dechirped = matrix * np.conj(ref)[:, np.newaxis]
+        else:
+            dechirped = matrix
+        # 距离向脉压 + fftshift
+        range_compressed = np.fft.fftshift(np.fft.fft(dechirped, axis=0), axes=0)
+        # 多普勒处理 + fftshift
+        rd_map = np.fft.fftshift(np.fft.fft(range_compressed, axis=1), axes=1)
+        return rd_map
+
+    def update_plot(self, radar_sig, mode_name):
+        if radar_sig is None:
+            return
+
+        self._rd_data = self._compute_rd(radar_sig)
+        nrn, nan1 = self._rd_data.shape
+
+        c_light = 3e8
+        # 物理坐标轴
+        if self._fs > 0 and self._gama > 0:
+            self._xi = np.fft.fftshift(np.fft.fftfreq(nrn, 1.0 / self._fs)) * c_light / (2.0 * self._gama)
+        else:
+            self._xi = np.arange(nrn, dtype=float)
+        if self._fc > 0 and self._prf > 0:
+            lambda_ = c_light / self._fc
+            self._dv = np.fft.fftshift(np.fft.fftfreq(nan1, 1.0 / self._prf)) * lambda_ / 2.0
+        else:
+            self._dv = np.arange(nan1, dtype=float)
+
+        mag_db = 20.0 * np.log10(np.abs(self._rd_data) + 1e-12)
+        peak = float(np.max(mag_db))
+        vmin = peak - 60.0
+        vmax = peak
+
+        self._img.setImage(mag_db[::-1], autoLevels=False)
+        self._img.setLevels([vmin, vmax])
+        self._lut.setLevels(vmin, vmax)
+
+        x_min, x_max = float(self._dv[0]), float(self._dv[-1])
+        y_min, y_max = float(self._xi[0]), float(self._xi[-1])
+        x_range = x_max - x_min if x_max != x_min else 1.0
+        y_range = y_max - y_min if y_max != y_min else 1.0
+        self._img.setRect(pg.QtCore.QRectF(x_min, y_min, x_range, y_range))
+
+        self._plot.setTitle(
+            f"距离-多普勒图 — {mode_name} ({nrn}x{nan1}, 峰值={peak:.1f} dB)",
+            color=_pt()["pg_fg"], size="11pt",
+        )
+        self._plot.getViewBox().setLimits(xMin=x_min, xMax=x_max, yMin=y_min, yMax=y_max)
+        self._plot.getViewBox().setRange(xRange=(x_min, x_max), yRange=(y_min, y_max), padding=0.02)
+
+    def clear_data(self):
+        self._img.clear()
+        self._rd_data = None
+        self._xi = None
+        self._dv = None
+
+
 class PlotPanel(QWidget):
 
     def __init__(self, parent=None):
@@ -639,6 +773,9 @@ class PlotPanel(QWidget):
         self._tnrn = None
         self._fr = None
         self._fc = 0.0
+        self._fs = 0.0
+        self._gama = 0.0
+        self._prf = 10e3
         self._pending_pulse = None
         self._pulse_timer = QTimer(self)
         self._pulse_timer.setSingleShot(True)
@@ -702,6 +839,7 @@ class PlotPanel(QWidget):
         self._freq_seq_plot = FreqSeqPlot()
         self._phase_seq_plot = PhaseSeqPlot()  # Bug 5 fix: phi1 visualization
         self._stft_plot = STFTPlotWidget()
+        self._rd_plot = RDMapPlotWidget()
 
         self._tabs.addTab(self._time_plot, " 时域波形 ")
         self._tabs.addTab(self._freq_plot, " 频谱 ")
@@ -710,6 +848,7 @@ class PlotPanel(QWidget):
         self._tabs.addTab(self._freq_seq_plot, " 载频序列 ")
         self._tabs.addTab(self._phase_seq_plot, " 随机相位 ")
         self._tabs.addTab(self._stft_plot, " STFT时频 ")
+        self._tabs.addTab(self._rd_plot, " 距离-多普勒 ")
         self._tabs.currentChanged.connect(self._on_tab_changed)
 
         layout.addWidget(self._tabs)
@@ -733,12 +872,17 @@ class PlotPanel(QWidget):
             self._phase_plot.update_plot(self._fr, col)
         elif tab_idx == 6 and self._tnrn is not None and len(self._tnrn) > 1:
             fs = 1.0 / (self._tnrn[1] - self._tnrn[0])
-            self._stft_plot.update_plot(self._tnrn, col, fs, self._fc)
+            # Cases 3/4 生成基带信号(无载波), 不需要载波去除
+            stft_fc = 0.0 if self._current_mode in (3, 4) else self._fc
+            self._stft_plot.update_plot(self._tnrn, col, fs, stft_fc)
 
-    def set_time_freq_axes(self, tnrn, fr, fc=0.0):
+    def set_time_freq_axes(self, tnrn, fr, fc=0.0, fs=0.0, gama=0.0, prf=10e3):
         self._tnrn = tnrn
         self._fr = fr
         self._fc = fc
+        self._fs = fs
+        self._gama = gama
+        self._prf = prf
 
     def update_plots(self, results, default_mode=None):
         self._results = results if results else {}
@@ -812,6 +956,17 @@ class PlotPanel(QWidget):
             self._image_plot.update_plot(radar_sig)
             self._update_single_pulse(default_pulse)
 
+            # RD 图
+            mode_names = {1: "Case1 固定跳频", 2: "Case2 随机相位",
+                          3: "Case3 PRI抖动", 4: "Case4 混合波形", 5: "Case5 复合波形"}
+            mode_name = mode_names.get(mode, f"Case{mode}")
+            self._rd_plot._tnrn = self._tnrn
+            self._rd_plot._gama = self._gama
+            self._rd_plot._fs = self._fs
+            self._rd_plot._fc = self._fc
+            self._rd_plot._prf = self._prf
+            self._rd_plot.update_plot(radar_sig, mode_name)
+
             if f_seq is not None and np.any(f_seq != 0):
                 self._freq_seq_plot.update_plot(f_seq)
 
@@ -841,12 +996,14 @@ class PlotPanel(QWidget):
                 self._phase_plot.update_plot(self._fr, col)
         if current_tab == 6 and self._tnrn is not None and len(self._tnrn) > 1:
             fs = 1.0 / (self._tnrn[1] - self._tnrn[0])
-            self._stft_plot.update_plot(self._tnrn, col, fs, self._fc)
+            # Cases 3/4 生成基带信号(无载波), 不需要载波去除
+            stft_fc = 0.0 if self._current_mode in (3, 4) else self._fc
+            self._stft_plot.update_plot(self._tnrn, col, fs, stft_fc)
 
     def clear_plots(self):
         for w in [self._time_plot, self._freq_plot, self._phase_plot,
                    self._image_plot, self._freq_seq_plot, self._phase_seq_plot,
-                   self._stft_plot]:
+                   self._stft_plot, self._rd_plot]:
             w.clear_data()
         self._pulse_combo.clear()
         self._mode_combo.clear()
@@ -869,7 +1026,7 @@ class PlotPanel(QWidget):
 
             if ext == "svg":
                 from pyqtgraph.exporters import SVGExporter
-                if isinstance(widget, (ImagePlotWidget, STFTPlotWidget)):
+                if isinstance(widget, (ImagePlotWidget, STFTPlotWidget, RDMapPlotWidget)):
                     exporter = SVGExporter(widget._plot)
                 elif isinstance(widget, TimeDomainPlot):
                     exporter = SVGExporter(widget._pw.plotItem)
@@ -878,7 +1035,7 @@ class PlotPanel(QWidget):
                 exporter.export(path)
             else:
                 from pyqtgraph.exporters import ImageExporter
-                if isinstance(widget, (ImagePlotWidget, STFTPlotWidget)):
+                if isinstance(widget, (ImagePlotWidget, STFTPlotWidget, RDMapPlotWidget)):
                     exporter = ImageExporter(widget._plot)
                 elif isinstance(widget, TimeDomainPlot):
                     exporter = ImageExporter(widget._pw.plotItem)

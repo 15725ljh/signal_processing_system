@@ -8,15 +8,35 @@
 
 ```
 02_jamming_generation/
-├── CMakeLists.txt              # 构建配置，输出可执行文件 jamming_gen
+├── CMakeLists.txt              # 构建配置，输出 jamming_gen 可执行文件 + libjamming_core.a 静态库
 ├── include/
 │   ├── parameters.h            # 系统参数(与01模块完全一致的副本)
 │   ├── Module0.h               # 工具函数库(与01模块完全一致的副本)
-│   └── Module2.h               # 10种干扰生成函数定义(CFG读取jamming.*参数)
-└── src/
-    ├── main.cpp                # 入口：Config::instance().load() → ganrao() → promptToExit()
-    └── Module2.cpp             # ganrao() 实现：循环调用各模式，级联叠加
+│   ├── Module2.h               # 10种干扰生成函数定义(CFG读取jamming.*参数)
+│   ├── jamming_core.h          # 共享库 API: generate_jamming() 入口 + JammingResult 结构体
+│   ├── jamming_params.h        # 共享库参数结构体 JammingParams (10种Case全部参数)
+│   └── Config.h                # 配置管理器单例(每个模块各有一份)
+├── src/
+│   ├── main.cpp                # 入口：Config::instance().load() → ganrao() → promptToExit()
+│   ├── Module2.cpp             # ganrao() 实现：循环调用各模式，级联叠加
+│   └── jamming_core.cpp        # 共享库：10个 Case 函数 + generate_jamming() 调度器
+└── bindings/
+    └── jamming_bind.cpp        # pybind11 绑定（薄适配层，供 GUI 使用）
 ```
+
+### 静态库架构
+
+```
+jamming_core.cpp → libjamming_core.a (依赖 Eigen + FFTW3)
+                     ↕
+         ┌───────────┴───────────┐
+  jamming_gen (可执行文件)    jamming_cpp.pyd (GUI pybind11)
+  额外链接: fftw3             额外链接: fftw3
+```
+
+- `libjamming_core.a` 包含10种干扰生成函数 + 派生参数计算，依赖 Eigen + FFTW3
+- `jamming_gen` 可执行文件链接 fftw3 和静态库
+- GUI 的 `jamming_cpp.pyd` 链接静态库和 fftw3
 
 ## 输入/输出
 

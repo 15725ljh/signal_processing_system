@@ -105,9 +105,10 @@ GUI_waveform/
 | 标签 | 类名 | 说明 |
 |------|------|------|
 | 时域 | TimeDomainPlot | 单脉冲实部/虚部/包络，支持十字准线 |
-| 频域 | FreqDomainPlot | 频谱幅度(dB) |
-| 图像 | ImagePlotWidget | 信号矩阵热力图 (实部/虚部/幅度/相位) |
-| 频率序列 | FreqSeqPlot | 每脉冲载频柱状图 (含十字准线) |
+| 频谱 | FrequencyPlot | 频谱幅度(dB) |
+| 信号矩阵 | ImagePlotWidget | 信号矩阵热力图 (实部/虚部/幅度/相位) |
+| 相位谱 | PhasePlot | 相位谱图 |
+| 载频序列 | FreqSeqPlot | 每脉冲载频柱状图 (含十字准线) |
 | 随机相位 | PhaseSeqPlot | phi1相位角散点图 (Case2/5) |
 | STFT | STFTPlotWidget | 时频分析图 (去数字载波后) |
 
@@ -145,10 +146,10 @@ Windows 11 下 Qt 原生图标设置不足以让任务栏正确显示自定义�
 
 GUI 按以下顺序搜索 `config.json`：
 1. 命令行参数指定路径
-2. 环境变量 `SIGNAL_PROC_CONFIG`
+2. 环境变量 `SPS_CONFIG`
 3. 当前目录
 4. 父目录
-5. `~/.signal_processing/config.json`
+5. `~/.config/sps/config.json`
 
 也支持通过菜单加载/保存配置文件。
 

@@ -19,6 +19,30 @@ endif()
 
 file(GLOB_RECURSE SOURCES "src/*.cpp")
 list(FILTER SOURCES EXCLUDE REGEX "test_case6\\.cpp$")
+list(FILTER SOURCES EXCLUDE REGEX "signal_processing_core\\.cpp$")
+
+# ── signal_processing_core 静态库 (供 GUI pybind11 绑定使用) ──
+add_library(signal_processing_core STATIC src/signal_processing_core.cpp)
+target_include_directories(signal_processing_core PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/../01_waveform_generation/include
+    ${NLOHMANN_INCLUDE_DIR}
+    ${EIGEN_INCLUDE_DIR}
+    ${FFTW_INCLUDE_DIR}
+)
+if(FFTW_LIBRARY_DIR)
+    target_link_directories(signal_processing_core PRIVATE ${FFTW_LIBRARY_DIR})
+endif()
+target_link_libraries(signal_processing_core PUBLIC fftw3)
+# waveform_core 可选依赖 (从项目根目录构建时可用)
+if(TARGET waveform_core)
+    target_link_libraries(signal_processing_core PUBLIC waveform_core)
+endif()
+if(CMAKE_BUILD_TYPE STREQUAL "Release")
+    if(NOT MSVC)
+        target_compile_options(signal_processing_core PRIVATE -O3)
+    endif()
+endif()
 
 add_executable(signal_proc ${SOURCES})
 

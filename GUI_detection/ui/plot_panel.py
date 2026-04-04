@@ -880,6 +880,151 @@ class DetectionStatsPlot(QWidget):
                                 color=_pt()["pg_fg"], size="11pt")
 
 
+# ── 8. 距离-多普勒图 ──
+
+class RDMapPlotWidget(QWidget):
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+
+        pt = _pt()
+
+        self._layout_widget = pg.GraphicsLayoutWidget()
+        self._layout_widget.setBackground(pt["pg_bg"])
+        self._plot = self._layout_widget.addPlot(
+            title="距离-多普勒图",
+            axisItems={'left': pg.AxisItem('left'), 'bottom': pg.AxisItem('bottom')},
+        )
+        self._plot.showGrid(x=True, y=True, alpha=0.4)
+        _apply_axis_style(self._plot)
+        self._plot.getViewBox().setBackgroundColor(pt["viewbox_bg"])
+        _set_label(self._plot, "bottom", "速度", units="m/s")
+        _set_label(self._plot, "left", "距离", units="m")
+
+        self._img = pg.ImageItem()
+        jet_colors = [
+            (0.0,  (0, 0, 143)),   (0.12, (0, 0, 255)),
+            (0.25, (0, 127, 255)), (0.37, (0, 255, 255)),
+            (0.5,  (0, 255, 0)),   (0.62, (255, 255, 0)),
+            (0.75, (255, 127, 0)), (0.87, (255, 0, 0)),
+            (1.0,  (128, 0, 0)),
+        ]
+        self._jet_cmap = pg.ColorMap(
+            pos=[c[0] for c in jet_colors],
+            color=[c[1] for c in jet_colors],
+        )
+        self._img.setColorMap(self._jet_cmap)
+        self._plot.addItem(self._img)
+
+        self._lut = pg.HistogramLUTItem(image=self._img)
+        self._lut.gradient.setColorMap(self._jet_cmap)
+        self._layout_widget.addItem(self._lut)
+
+        # 十字准线
+        cross_color = pt.get("crosshair", "#fff")
+        self._vline = pg.InfiniteLine(angle=90, pen=pg.mkPen(cross_color, width=1, style=Qt.PenStyle.DashLine))
+        self._hline = pg.InfiniteLine(angle=0, pen=pg.mkPen(cross_color, width=1, style=Qt.PenStyle.DashLine))
+        self._vline.setVisible(False)
+        self._hline.setVisible(False)
+        self._plot.addItem(self._vline, ignoreBounds=True)
+        self._plot.addItem(self._hline, ignoreBounds=True)
+        self._crosshair = pg.TextItem(anchor=(0, 1), color=pt["crosshair_text"],
+                                      fill=pg.mkBrush(*pt["crosshair_fill"]))
+        self._crosshair.setFont(pg.QtGui.QFont("Menlo", 9, pg.QtGui.QFont.Weight.Bold))
+        self._crosshair.setVisible(False)
+        self._plot.addItem(self._crosshair, ignoreBounds=True)
+
+        self._rd_data = None
+        self._xi = None
+        self._dv = None
+
+        def on_mouse(evt):
+            if self._rd_data is None:
+                return
+            pos = self._plot.getViewBox().mapSceneToView(evt)
+            if self._plot.getViewBox().sceneBoundingRect().contains(evt):
+                self._vline.setPos(pos.x())
+                self._hline.setPos(pos.y())
+                self._vline.setVisible(True)
+                self._hline.setVisible(True)
+                ix = np.argmin(np.abs(self._dv - pos.x()))
+                iy = np.argmin(np.abs(self._xi - pos.y()))
+                power = 20 * np.log10(np.abs(self._rd_data[iy, ix]) + 1e-15)
+                self._crosshair.setText(f"v={pos.x():.1f} m/s  r={pos.y():.1f} m  {power:.1f} dB")
+                self._crosshair.setPos(pos.x(), pos.y())
+                self._crosshair.setVisible(True)
+            else:
+                self._vline.setVisible(False)
+                self._hline.setVisible(False)
+                self._crosshair.setVisible(False)
+
+        self._plot.scene().sigMouseMoved.connect(on_mouse)
+
+        layout.addWidget(self._layout_widget, stretch=1)
+
+    def _compute_rd(self, echo_matrix, fs, fc, gama, prf):
+        """echo_matrix: (cpiNum, nrn) complex → RD map.
+        Module 03 信号为 passband, 需要先去载波再做 de-chirp."""
+        cpiNum, nrn = echo_matrix.shape
+        # 去载波 (passband → baseband)
+        n = np.arange(nrn)
+        carrier_removal = np.exp(-1j * 2.0 * np.pi * (fc / fs) * n)
+        bb_matrix = echo_matrix * carrier_removal[np.newaxis, :]
+
+        # De-chirp
+        t = n / fs
+        ref = np.exp(1j * np.pi * gama * t ** 2)
+        dechirped = bb_matrix * np.conj(ref)[np.newaxis, :]
+
+        # RD 处理: 距离向 FFT (axis=1) → 多普勒向 FFT (axis=0)
+        range_compressed = np.fft.fftshift(np.fft.fft(dechirped, axis=1), axes=1)
+        rd_map = np.fft.fftshift(np.fft.fft(range_compressed, axis=0), axes=0)
+        return rd_map
+
+    def update_plot(self, echo_matrix, fs, fc, gama, prf, label=""):
+        if echo_matrix is None:
+            return
+
+        self._rd_data = self._compute_rd(echo_matrix, fs, fc, gama, prf)
+        cpiNum, nrn = self._rd_data.shape
+
+        c_light = 3e8
+        # 距离轴 (axis=1, nrn 点)
+        self._xi = np.fft.fftshift(np.fft.fftfreq(nrn, 1.0 / fs)) * c_light / (2.0 * gama)
+        # 速度轴 (axis=0, cpiNum 点)
+        lambda_ = c_light / fc
+        self._dv = np.fft.fftshift(np.fft.fftfreq(cpiNum, 1.0 / prf)) * lambda_ / 2.0
+
+        mag_db = 20.0 * np.log10(np.abs(self._rd_data) + 1e-12)
+        peak = float(np.max(mag_db))
+        vmin = peak - 60.0
+        vmax = peak
+
+        self._img.setImage(mag_db[::-1], autoLevels=False)
+        self._img.setLevels([vmin, vmax])
+        self._lut.setLevels(vmin, vmax)
+
+        x_min, x_max = float(self._dv[0]), float(self._dv[-1])
+        y_min, y_max = float(self._xi[0]), float(self._xi[-1])
+        x_range = x_max - x_min if x_max != x_min else 1.0
+        y_range = y_max - y_min if y_max != y_min else 1.0
+        self._img.setRect(pg.QtCore.QRectF(x_min, y_min, x_range, y_range))
+
+        title = f"距离-多普勒图 — {label} ({nrn}x{cpiNum}, 峰值={peak:.1f} dB)" if label else f"距离-多普勒图 ({nrn}x{cpiNum}, 峰值={peak:.1f} dB)"
+        self._plot.setTitle(title, color=_pt()["pg_fg"], size="11pt")
+        self._plot.getViewBox().setLimits(xMin=x_min, xMax=x_max, yMin=y_min, yMax=y_max)
+        self._plot.getViewBox().setRange(xRange=(x_min, x_max), yRange=(y_min, y_max), padding=0.02)
+
+    def clear_data(self):
+        self._img.clear()
+        self._rd_data = None
+        self._xi = None
+        self._dv = None
+
+
 # ── PlotPanel 主面板 ──
 
 class PlotPanel(QWidget):
@@ -890,6 +1035,9 @@ class PlotPanel(QWidget):
         self._result = None
         self._current_label = None
         self._fs = 120e6
+        self._fc = 35e9
+        self._gama = 80e6 / 12e-6
+        self._prf = 5e3
         self._pending_cpi = None
         self._cpi_timer = QTimer(self)
         self._cpi_timer.setSingleShot(True)
@@ -950,6 +1098,7 @@ class PlotPanel(QWidget):
         self._sep_plot = SeparationPlot()
         self._sep_stft_plot = SeparatedSTFTPlot()
         self._stats_plot = DetectionStatsPlot()
+        self._rd_plot = RDMapPlotWidget()
 
         self._tabs.addTab(self._time_plot, " 时域波形 ")
         self._tabs.addTab(self._freq_plot, " 频域频谱 ")
@@ -957,6 +1106,7 @@ class PlotPanel(QWidget):
         self._tabs.addTab(self._mask_plot, " 干扰定位 ")
         self._tabs.addTab(self._sep_plot, " 分离对比 ")
         self._tabs.addTab(self._sep_stft_plot, " 分离时频 ")
+        self._tabs.addTab(self._rd_plot, " 距离-多普勒 ")
         self._tabs.addTab(self._stats_plot, " 检测统计 ")
         self._tabs.currentChanged.connect(self._on_tab_changed)
 
@@ -1085,7 +1235,7 @@ class PlotPanel(QWidget):
         if r is None:
             return
 
-        # STFT / 掩码 / 统计图不需要 CPI 选择
+        # STFT / 掩码 / 统计图 / RD 图不需要 CPI 选择
         self._stft_plot.update_plot(r.get("stft_matrix"))
         self._mask_plot.update_plot(r.get("stft_matrix"), r.get("jam_mask"))
         self._stats_plot.update_plot(
@@ -1093,6 +1243,13 @@ class PlotPanel(QWidget):
             r.get("correct_count", 0), r.get("cpiNum", 0),
             r.get("isr", 0.0), r.get("elapsed", 0.0),
         )
+        # RD 图
+        echo = r.get("echo_signal")
+        if echo is not None:
+            label = self._TYPE_NAMES.get(self._current_label, f"Label {self._current_label}")
+            self._rd_plot.update_plot(echo, self._fs, self._fc, self._gama, self._prf, label)
+        else:
+            self._rd_plot.clear_data()
 
         # 更新当前选中的 CPI
         cpi_idx = self._cpi_spin.value()
@@ -1142,7 +1299,7 @@ class PlotPanel(QWidget):
     def clear_plots(self):
         for w in [self._time_plot, self._freq_plot, self._stft_plot,
                    self._mask_plot, self._sep_plot, self._sep_stft_plot,
-                   self._stats_plot]:
+                   self._stats_plot, self._rd_plot]:
             w.clear_data()
         self._cpi_spin.setRange(0, 0)
         self._cpi_spin.setValue(0)
@@ -1169,7 +1326,7 @@ class PlotPanel(QWidget):
 
             if ext == "svg":
                 from pyqtgraph.exporters import SVGExporter
-                if isinstance(widget, (STFTPlotWidget, JamMaskPlotWidget, SeparatedSTFTPlot)):
+                if isinstance(widget, (STFTPlotWidget, JamMaskPlotWidget, SeparatedSTFTPlot, RDMapPlotWidget)):
                     exporter = SVGExporter(widget._plot)
                 elif isinstance(widget, DetectionStatsPlot):
                     exporter = SVGExporter(widget._bar_plot)
@@ -1178,7 +1335,7 @@ class PlotPanel(QWidget):
                 exporter.export(path)
             else:
                 from pyqtgraph.exporters import ImageExporter
-                if isinstance(widget, (STFTPlotWidget, JamMaskPlotWidget, SeparatedSTFTPlot)):
+                if isinstance(widget, (STFTPlotWidget, JamMaskPlotWidget, SeparatedSTFTPlot, RDMapPlotWidget)):
                     exporter = ImageExporter(widget._plot)
                 elif isinstance(widget, DetectionStatsPlot):
                     exporter = ImageExporter(widget._bar_plot)
@@ -1203,40 +1360,56 @@ class PlotPanel(QWidget):
         saved = []
         try:
             r = self._result
+            label = self._current_label or 0
+            tag = self._TYPE_NAMES.get(label, f"Label{label}").replace(" ", "_")
 
             # echo_signal (cpiNum x nrn)
             echo = r.get("echo_signal")
             if echo is not None:
-                path = os.path.join(dir_path, "03_detection_echo_signal.dat")
+                path = os.path.join(dir_path, f"03_detection_{tag}_含干扰回波_signal.dat")
                 self._save_complex_matrix(echo, path)
+                saved.append(os.path.basename(path))
+
+            # s_echo_noise (nrn,)
+            s_echo = r.get("s_echo_noise")
+            if s_echo is not None:
+                path = os.path.join(dir_path, f"03_detection_{tag}_含噪目标_signal.dat")
+                self._save_complex_vector(s_echo, path)
                 saved.append(os.path.basename(path))
 
             # jamming_signal (nrn,)
             jam = r.get("jamming_signal")
             if jam is not None:
-                path = os.path.join(dir_path, "03_detection_jamming_signal.dat")
+                path = os.path.join(dir_path, f"03_detection_{tag}_分离干扰_signal.dat")
                 self._save_complex_vector(jam, path)
                 saved.append(os.path.basename(path))
 
             # target_signal (nrn,)
             tgt = r.get("target_signal")
             if tgt is not None:
-                path = os.path.join(dir_path, "03_detection_target_signal.dat")
+                path = os.path.join(dir_path, f"03_detection_{tag}_分离目标_signal.dat")
                 self._save_complex_vector(tgt, path)
-                saved.append(os.path.basename(path))
-
-            # detection_types (cpiNum,)
-            dtypes = r.get("detection_types")
-            if dtypes is not None:
-                path = os.path.join(dir_path, "03_detection_types.txt")
-                np.savetxt(path, dtypes, fmt="%d", header="detection_types (cpiNum)")
                 saved.append(os.path.basename(path))
 
             # stft_matrix
             stft = r.get("stft_matrix")
             if stft is not None:
-                path = os.path.join(dir_path, "03_detection_stft_matrix.dat")
+                path = os.path.join(dir_path, f"03_detection_{tag}_STFT时频图.dat")
                 self._save_complex_matrix(stft, path)
+                saved.append(os.path.basename(path))
+
+            # jam_mask
+            mask = r.get("jam_mask")
+            if mask is not None:
+                path = os.path.join(dir_path, f"03_detection_{tag}_干扰掩码.dat")
+                np.savetxt(path, mask, fmt="%d", header="jam_mask (STFT_NUM x nrn)")
+                saved.append(os.path.basename(path))
+
+            # detection_types (cpiNum,)
+            dtypes = r.get("detection_types")
+            if dtypes is not None:
+                path = os.path.join(dir_path, f"03_detection_{tag}_识别结果.txt")
+                np.savetxt(path, dtypes, fmt="%d", header="detection_types (cpiNum)")
                 saved.append(os.path.basename(path))
 
             msg = "\n".join(saved)
@@ -1258,7 +1431,7 @@ class PlotPanel(QWidget):
     def _save_complex_vector(vec, path):
         n = len(vec)
         with open(path, "w") as f:
-            f.write(f"{n}\n")
+            f.write(f"{n} 1\n")
             for i in range(n):
                 v = vec[i]
                 f.write(f"( {v.real:.15e} + {v.imag:.15e}j )\n")

@@ -109,7 +109,7 @@ inline void chuli_Case1(const MatrixXcd& Radar_Sig,MatrixXcd& F) {
     MatrixXcd dopplerCompensation(nrn(), nan1());
     for (int i = 0; i < _nrn; i++) {
         for (int j = 0; j < _nan1; j++) {
-            double phase = 2.0 * PI * fr(i) * (2 * _Vr * pulseIndices(j)) / (_prf * c);
+            double phase = -2.0 * PI * fr(i) * (2 * _Vr * pulseIndices(j)) / (_prf * c);
             dopplerCompensation(i, j) = exp(I_complex * phase);
         }
     }
@@ -143,8 +143,8 @@ inline void chuli_Case1(const MatrixXcd& Radar_Sig,MatrixXcd& F) {
 
     // 速度解模糊处理
     double v_max = c / (2.0 * prt() * fc());   // 计算最大不模糊速度 v_max = c/(2*prt()*fc())
-    // 计算模糊次数 NUM = floor((-Vr() + v_max/2) / v_max)
-    int NUM = static_cast<int>(floor((-Vr() + v_max / 2.0) / v_max));
+    // 计算模糊次数 NUM = floor((Vr() + v_max/2) / v_max) (Vr>0 = approaching)
+    int NUM = static_cast<int>(floor((Vr() + v_max / 2.0) / v_max));
     // 计算速度轴 dv
     // dv = (((0:nan1()-1) - nan1()/2) * c/(2*prt()*fc()*nan1())) + NUM*(c/(2*prt()*fc()));
     const double _prt = prt();
@@ -246,8 +246,8 @@ inline void chuli_Case2(const MatrixXcd& Radar_Sig,MatrixXcd& F) {
     for (int j = 0; j < _nan1; j++)  {
         slow_time(j) = j + 1;
     }
-    // 计算常数因子:2*Vr()/(prf()*c)
-    double factor = 2.0 * Vr() / (prf() * c);
+    // 计算常数因子:-2*Vr()/(prf()*c) (Vr>0 = approaching, Doppler positive)
+    double factor = -2.0 * Vr() / (prf() * c);
     // 利用 fr(nrn() x 1 向量)与 slow_time(1 x nan1() 向量)的外积构造矩阵 M,其尺寸为 nrn() x nan1()
     MatrixXd M_outer = fr * slow_time;
     // 计算多普勒补偿相位矩阵:每个元素 exp(1i*2*pi*factor*M_outer(i,j))
@@ -275,17 +275,17 @@ inline void chuli_Case2(const MatrixXcd& Radar_Sig,MatrixXcd& F) {
     }
     
     // 标度生成与结果保存
-    // 生成距离标度 xi = [0,1,...,nrn()-1] / fs() * c/2
+    // 生成距离标度 xi = (-nrn()/2:nrn()/2-1) / fs() * c/2 + Rs() (centered)
     VectorXd xi(nrn());
     for (int i = 0; i < _nrn; i++)  {
-        xi(i) = (i / _fs) * (c / 2.0);
+        xi(i) = ((i - _nrn / 2.0) / _fs) * (c / 2.0) + Rs();
     }
-    // 生成速度标度 yi = [0,1,...,nan1()-1] * prf()*c/fc()/2/nan1()
+    // 生成速度标度 yi = (-nan1()/2:nan1()/2-1) * prf()*c/fc()/2/nan1() (centered, matches fftshifted F)
     const double _prf = prf();
     const double _fc = fc();
     VectorXd yi(nan1());
     for (int j = 0; j < _nan1; j++) {
-        yi(j) = j * _prf * c / _fc / 2.0 / _nan1;
+        yi(j) = (j - _nan1 / 2.0) * _prf * c / _fc / 2.0 / _nan1;
     }
     
     // F: MatrixXcd, 维度 nrn×nan1, 距离-多普勒图(复数,含随机相位补偿)
@@ -669,7 +669,7 @@ inline void chuli_Case5(const MatrixXcd& Radar_Sig,MatrixXcd& F)  {
     for (int j = 0; j < _nan1; j++) {
         double t_factor = (j + 1) / _prf;
         for (int i = 0; i < _nrn; i++) {
-            double phase_arg = 2.0 * PI * fr(i) * 2.0 * _Vr * t_factor / c;
+            double phase_arg = -2.0 * PI * fr(i) * 2.0 * _Vr * t_factor / c;
             doppler_phase(i, j) = exp(I_complex * phase_arg);
         }
     }
@@ -701,9 +701,9 @@ inline void chuli_Case5(const MatrixXcd& Radar_Sig,MatrixXcd& F)  {
     
     const double _fc = fc();
     const double _prt = prt();
-    // 速度解模糊处理
+    // 速度解模糊处理 (Vr>0 = approaching)
     double v_max = _prf * c / (2.0 * _fc);
-    int NUM = static_cast<int>(floor((-_Vr + v_max / 2.0) / v_max));
+    int NUM = static_cast<int>(floor((_Vr + v_max / 2.0) / v_max));
     
     VectorXd dv(nan1());
     for (int j = 0; j < _nan1; j++) {

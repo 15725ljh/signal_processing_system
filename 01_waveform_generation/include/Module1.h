@@ -58,8 +58,8 @@ inline void boxing_Case1(MatrixXcd& Radar_Sig) {
         f_step(k) = gg * delta_f;
         f(k) = _fc + f_step(k);
 
-        // 计算目标距离(考虑平台运动)
-        double R = _Rs + _Vr * k / _prf;
+        // 计算目标距离(考虑平台运动, Vr>0 = approaching)
+        double R = _Rs - _Vr * k / _prf;
 
         // 生成距离门窗口
         win = ((tnrn.array() - 2 * R / c) >= -_Tp / 2).cast<double>()
@@ -99,7 +99,7 @@ inline void boxing_Case2(MatrixXcd& Radar_Sig) {
     const double _fs = fs(), _Tstart = Tstart();
     for (int i = 0; i < nan1(); ++i) {
         double tm = static_cast<double>(i) / _prf;  // 当前脉冲时间
-        double R = _Rs + _Vr * tm;                   // 目标实时距离
+        double R = _Rs - _Vr * tm;                   // 目标实时距离 (Vr>0 = approaching)
 
         // 距离门窗口
         win = ((tnrn.array() - 2 * R / c) >= -_Tp / 2).cast<double>()
@@ -299,7 +299,7 @@ inline void boxing_Case5(MatrixXcd& Radar_Sig) {
         f_step(k) = gg * delta_f;
         f(k) = _fc + f_step(k);  // 当前载频
 
-        double R = _Rs + _Vr * k / _prf;  // 目标距离
+        double R = _Rs - _Vr * k / _prf;  // 目标距离 (Vr>0 = approaching)
 
         // 距离门窗口
         win = ((tnrn.array() - 2 * R / c) >= -_Tp / 2).cast<double>()

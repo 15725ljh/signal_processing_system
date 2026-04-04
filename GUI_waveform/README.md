@@ -195,7 +195,7 @@ pyinstaller --clean --noconfirm scripts\雷达波形生成系统_win.spec
 
 将整个 `dist\雷达波形生成系统\` 文件夹拷贝到目标机器即可。
 - 将 `config.json` 放在 exe 的**上级目录**
-- 或设置环境变量 `SIGNAL_PROC_CONFIG` 指向 config.json
+- 或设置环境变量 `SPS_CONFIG` 指向 config.json
 
 ---
 

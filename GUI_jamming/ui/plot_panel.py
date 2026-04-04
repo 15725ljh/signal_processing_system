@@ -669,6 +669,9 @@ class RangeDopplerPlot(QWidget):
         self._rd_cache = {}
         self._tnrn = None
         self._gama = 0.0
+        self._fs = 0.0
+        self._fc = 0.0
+        self._prf = 10e3
         self._sig_group.idToggled.connect(self._on_sig_toggle)
 
         layout.addWidget(self._layout_widget, stretch=1)
@@ -680,7 +683,7 @@ class RangeDopplerPlot(QWidget):
             self._render_cached()
 
     def _compute_rd(self, matrix):
-        """计算 Range-Doppler 图: 去斜 → 距离向 FFT → 多普勒向 FFT."""
+        """计算 Range-Doppler 图: 去斜 → 距离向 FFT+fftshift → 多普勒向 FFT+fftshift."""
         nrn, nan1 = matrix.shape
         # 去斜 (de-chirp): 乘以参考 chirp 的共轭
         if self._tnrn is not None and self._gama > 0:
@@ -688,8 +691,8 @@ class RangeDopplerPlot(QWidget):
             dechirped = matrix * np.conj(ref)[:, np.newaxis]
         else:
             dechirped = matrix
-        # 距离向脉压 (每列 FFT)
-        range_compressed = np.fft.fft(dechirped, axis=0)
+        # 距离向脉压 (每列 FFT) + fftshift 使零距离居中
+        range_compressed = np.fft.fftshift(np.fft.fft(dechirped, axis=0), axes=0)
         # 多普勒处理 (每行 FFT, shift 使零多普勒居中)
         rd_map = np.fft.fftshift(np.fft.fft(range_compressed, axis=1), axes=1)
         rd_mag = 20.0 * np.log10(np.abs(rd_map) + 1e-12)
@@ -711,25 +714,42 @@ class RangeDopplerPlot(QWidget):
         self._img.setImage(rd_mag[::-1], autoLevels=False)
         self._img.setLevels([vmin, vmax])
         self._lut.setLevels(vmin, vmax)
-        self._img.setRect(pg.QtCore.QRectF(0, 0, nc, nr))
+
+        # 物理坐标轴
+        c_light = 3e8
+        if self._fs > 0 and self._gama > 0:
+            xi = np.fft.fftshift(np.fft.fftfreq(nr, 1.0 / self._fs)) * c_light / (2.0 * self._gama)
+        else:
+            xi = np.arange(nr, dtype=float)
+        if self._fc > 0 and self._prf > 0:
+            lambda_ = c_light / self._fc
+            dv = np.fft.fftshift(np.fft.fftfreq(nc, 1.0 / self._prf)) * lambda_ / 2.0
+        else:
+            dv = np.arange(nc, dtype=float)
+
+        self._img.setRect(pg.QtCore.QRectF(dv[0], xi[0], dv[-1] - dv[0], xi[-1] - xi[0]))
 
         self._plot.setTitle(f"距离-多普勒图 — {label_names[self._sig_type]}",
                             color=_pt()["pg_fg"], size="11pt")
-        _set_label(self._plot, "bottom", "多普勒单元", units=f"  [0~{nc - 1}]")
-        _set_label(self._plot, "left", "距离单元", units=f"  [0~{nr - 1}]")
+        _set_label(self._plot, "bottom", "速度", units="m/s")
+        _set_label(self._plot, "left", "距离", units="m")
         self._plot.getViewBox().setLimits(
-            xMin=-0.5, xMax=nc - 0.5,
-            yMin=-0.5, yMax=nr - 0.5,
+            xMin=dv[0], xMax=dv[-1],
+            yMin=xi[0], yMax=xi[-1],
         )
         self._plot.getViewBox().setRange(
-            xRange=(-0.5, nc - 0.5),
-            yRange=(-0.5, nr - 0.5),
+            xRange=(dv[0], dv[-1]),
+            yRange=(xi[0], xi[-1]),
             padding=0.02,
         )
 
-    def update_plot(self, target_signal, jam_signal, echo_target, tnrn=None, gama=0.0):
+    def update_plot(self, target_signal, jam_signal, echo_target, tnrn=None, gama=0.0,
+                    fs=0.0, fc=0.0, prf=10e3):
         self._tnrn = tnrn
         self._gama = gama
+        self._fs = fs
+        self._fc = fc
+        self._prf = prf
         self._rd_cache = {}
         if echo_target is not None:
             self._rd_cache["echo_target"] = self._compute_rd(echo_target)
@@ -1379,9 +1399,11 @@ class PlotPanel(QWidget):
         elif tab_idx == 3:
             target = result.get("target_signal")
             jam = result.get("jam_signal")
-            self._rd_plot.update_plot(target, jam, echo, self._tnrn, self._gama)
+            self._rd_plot.update_plot(target, jam, echo, self._tnrn, self._gama,
+                                      self._fs, self._fc, self._prf)
         elif tab_idx == 4 and self._tnrn is not None and self._fs > 0:
-            self._stft_plot.update_plot(self._tnrn, target_col, jam_col, echo_col, self._fs, self._fc)
+            # Module 02 所有信号均为基带, 不需要载波去除
+            self._stft_plot.update_plot(self._tnrn, target_col, jam_col, echo_col, self._fs, fc=0.0)
         elif tab_idx == 5 and self._tnrn is not None:
             self._pulse_compare_plot.update_plot(self._tnrn, target_col, jam_col, echo_col)
         elif tab_idx == 6:
@@ -1456,7 +1478,8 @@ class PlotPanel(QWidget):
 
             # 更新所有图表
             self._image_plot.update_plot(target, jam, echo)
-            self._rd_plot.update_plot(target, jam, echo, self._tnrn, self._gama)
+            self._rd_plot.update_plot(target, jam, echo, self._tnrn, self._gama,
+                                      self._fs, self._fc, self._prf)
             self._trajectory_plot.update_plot(mode, jam, target, self._tnrn, self._prf)
             self._update_single_pulse(default_pulse)
 
@@ -1490,7 +1513,8 @@ class PlotPanel(QWidget):
         elif current_tab == 1 and self._fr is not None:
             self._freq_plot.update_plot(self._fr, target_col, jam_col, echo_col)
         elif current_tab == 4 and self._tnrn is not None and self._fs > 0:
-            self._stft_plot.update_plot(self._tnrn, target_col, jam_col, echo_col, self._fs, self._fc)
+            # Module 02 所有信号均为基带, 不需要载波去除
+            self._stft_plot.update_plot(self._tnrn, target_col, jam_col, echo_col, self._fs, fc=0.0)
         elif current_tab == 5 and self._tnrn is not None:
             self._pulse_compare_plot.update_plot(self._tnrn, target_col, jam_col, echo_col)
 

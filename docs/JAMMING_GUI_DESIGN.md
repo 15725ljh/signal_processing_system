@@ -165,10 +165,10 @@ C++ 后端通过 pybind11 返回以下数据：
 
 GUI 按以下顺序搜索 `config.json`：
 1. 命令行参数指定路径
-2. 环境变量 `SIGNAL_PROC_CONFIG`
+2. 环境变量 `SPS_CONFIG`
 3. 当前目录
 4. 父目录
-5. `~/.signal_processing/config.json`
+5. `~/.config/sps/config.json`
 
 读取 `system.*` 和 `jamming.*` 配置节。
 
