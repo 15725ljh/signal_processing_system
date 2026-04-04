@@ -760,12 +760,12 @@ inline void chuli_Case6(const MatrixXcd& Radar_Sig) {
     double jam_energy = pulses_jammingsignal.cwiseAbs().matrix().norm();
     double target_energy = pulses_Targetsignal.cwiseAbs().matrix().norm();
     double avg_threshold = threshold_sum / nan1;
-    double ISR_dB = (jam_energy > 1e-15) ? 20.0 * log10(target_energy / jam_energy) : 0.0;
+    double JSR_dB = (jam_energy > 1e-15) ? 20.0 * log10(target_energy / jam_energy) : 0.0;
 
     cout << "  Case6诊断: 输入Frobenius范数=" << input_energy
          << " 干扰分离=" << jam_energy
          << " 目标分离=" << target_energy
-         << " ISR=" << ISR_dB << "dB"
+         << " JSR干扰抑制比=" << JSR_dB << "dB"
          << " 平均阈值=" << avg_threshold
          << " 高阶谱脉冲数=" << gaojiepu_count << "/" << nan1 << endl;
 

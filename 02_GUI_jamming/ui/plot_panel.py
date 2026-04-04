@@ -1315,7 +1315,7 @@ class PlotPanel(QWidget):
         toolbar.addWidget(lbl_mode)
 
         self._mode_combo = QComboBox()
-        self._mode_combo.setMinimumWidth(200)
+        self._mode_combo.setMinimumWidth(380)
         self._mode_combo.currentIndexChanged.connect(self._on_mode_changed)
         toolbar.addWidget(self._mode_combo)
 

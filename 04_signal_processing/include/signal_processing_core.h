@@ -4,7 +4,7 @@
  * 提供三个独立入口供 04_GUI_signal_processing 通过 pybind11 调用:
  *   1. run_recognition()         — 干扰识别 (STFT + gr_detection → J_type 0-10)
  *   2. run_processing_rd()      — 距离-多普勒处理 (Cases 1-5, 输出 RD map)
- *   3. run_processing_decouple() — 时频干扰解耦 (Case 6, 输出分离信号 + ISR)
+ *   3. run_processing_decouple() — 时频干扰解耦 (Case 6, 输出分离信号 + JSR)
  *
  * 参数注入方式: Python 端将参数写入临时 JSON → loadFromFile() → 调用现有函数
  */
@@ -47,7 +47,7 @@ struct ProcessingResultDecouple {
     Eigen::MatrixXcd jam_signal;       // (nrn × nan1) 分离干扰信号
     Eigen::MatrixXcd target_signal;    // (nrn × nan1) 分离目标信号
     Eigen::VectorXd decouple_flag;     // (nan1) 解耦标志 (0=正常, 1=高阶谱)
-    double isr_dB = 0;                 // 干扰抑制比 (dB)
+    double jsr_dB = 0;                 // 干扰抑制比 (dB)
     double avg_threshold = 0;          // 平均 Tsallis 阈值
     int gaojiepu_count = 0;            // 高阶谱脉冲数
     Eigen::MatrixXcd input_signal;     // (nrn × nan1) 输入混合信号
@@ -71,7 +71,7 @@ RecognitionResult run_recognition(int jam_type, const std::string& config_path);
 ProcessingResultRD run_processing_rd(int case_num, const std::string& config_path);
 
 /**
- * @brief 时频干扰解耦: 生成含干扰回波 → 逐脉冲 jamTarDivi → ISR
+ * @brief 时频干扰解耦: 生成含干扰回波 → 逐脉冲 jamTarDivi → JSR
  * @param jam_type    干扰类型 (1-5)
  * @param config_path 包含 system.*, processing.*, detection_suppression.* 的 JSON 文件
  */

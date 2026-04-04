@@ -1,12 +1,12 @@
 /*
  * test_case6.cpp — 独立测试 Module04 Case6 (时频干扰解耦) 的抑制效果
  *
- * 对比基准: Module03 的 ISR 结果 (ISDJ~23dB, RDJ~22dB, NBJ~9.5dB)
+ * 对比基准: Module03 的 JSR 结果 (ISDJ~23dB, RDJ~22dB, NBJ~9.5dB)
  *
  * 测试方案:
  *   1. 用 Module03 相同的参数生成含干扰回波(EchoGenerator)
  *   2. 对所有脉冲执行 jamTarDivi (Case6 的做法)
- *   3. 计算全局 ISR, 与 Module03 基准对比
+ *   3. 计算全局 JSR, 与 Module03 基准对比
  *   4. 验证能量守恒: |target| + |jam| ≈ |input|
  */
 #include <iostream>
@@ -207,7 +207,7 @@ int main() {
     cout << "===== Module04 Case6 独立测试 =====" << endl;
     cout << "参数: fc=" << fc/1e9 << "GHz, B=" << B/1e6 << "MHz, Tp=" << Tp/1e-6 << "us"
          << ", nrn=" << nrn << ", nan1=" << nan1 << endl;
-    cout << "基准: Module03 ISR ≈ 9~24 dB (取决于干扰类型)" << endl;
+    cout << "基准: Module03 JSR ≈ 9~24 dB (取决于干扰类型)" << endl;
     cout << endl;
 
     // ── 生成目标信号矩阵 (nrn × nan1) ──
@@ -220,7 +220,7 @@ int main() {
     cout << "纯目标信号 Frobenius范数: " << target_energy << endl;
 
     // ── 测试场景 ──
-    struct TestResult { string name; double isr; double energy_ratio; int gaojiepu_count; };
+    struct TestResult { string name; double jsr; double energy_ratio; int gaojiepu_count; };
     vector<TestResult> results;
 
     // === 测试1: ISRJ 干扰 ===
@@ -243,10 +243,10 @@ int main() {
         double jam_energy = jam_sig.cwiseAbs().matrix().norm();
         double sep_target_energy = tar_sig.cwiseAbs().matrix().norm();
 
-        // ISR: 对比 Module03 的计算方式
+        // JSR: 对比 Module03 的计算方式
         // kkk = |s_echo_noise|_max / |Echo|_max  (干信比基准)
         // kkk1 = |target|_max / |jam|_max  (分离后)
-        // ISR = 20*log10(kkk1/kkk)
+        // JSR = 20*log10(kkk1/kkk)
         double kkk = 0, kkk1 = 0;
         for (int i = 0; i < nan1; ++i) {
             double jam_max = (jammed.col(i).cwiseAbs().maxCoeff());
@@ -257,14 +257,14 @@ int main() {
             double sep_j = jam_sig.col(i).cwiseAbs().maxCoeff();
             if (sep_j > 0) kkk1 = max(kkk1, sep_t / sep_j);
         }
-        double isr = 20.0 * log10(kkk1 / max(kkk, 1e-12));
+        double jsr = 20.0 * log10(kkk1 / max(kkk, 1e-12));
         double energy_ratio = (jam_energy + sep_target_energy) / input_energy;
 
         cout << "  输入范数=" << input_energy << " 干扰分离=" << jam_energy
              << " 目标分离=" << sep_target_energy << endl;
-        cout << "  ISR=" << isr << " dB  能量守恒比=" << energy_ratio
+        cout << "  JSR干扰抑制比=" << jsr << " dB  能量守恒比=" << energy_ratio
              << "  高阶谱脉冲=" << gaojiepu_count << "/" << nan1 << endl;
-        results.push_back({"ISRJ", isr, energy_ratio, gaojiepu_count});
+        results.push_back({"ISRJ", jsr, energy_ratio, gaojiepu_count});
     }
 
     // === 测试2: RDJ 距离假目标干扰 ===
@@ -296,14 +296,14 @@ int main() {
             double sep_j = jam_sig.col(i).cwiseAbs().maxCoeff();
             if (sep_j > 0) kkk1 = max(kkk1, sep_t / sep_j);
         }
-        double isr = 20.0 * log10(kkk1 / max(kkk, 1e-12));
+        double jsr = 20.0 * log10(kkk1 / max(kkk, 1e-12));
         double energy_ratio = (jam_energy + sep_target_energy) / input_energy;
 
         cout << "  输入范数=" << input_energy << " 干扰分离=" << jam_energy
              << " 目标分离=" << sep_target_energy << endl;
-        cout << "  ISR=" << isr << " dB  能量守恒比=" << energy_ratio
+        cout << "  JSR干扰抑制比=" << jsr << " dB  能量守恒比=" << energy_ratio
              << "  高阶谱脉冲=" << gaojiepu_count << "/" << nan1 << endl;
-        results.push_back({"RDJ", isr, energy_ratio, gaojiepu_count});
+        results.push_back({"RDJ", jsr, energy_ratio, gaojiepu_count});
     }
 
     // === 测试3: NBJ 窄带噪声干扰 ===
@@ -338,14 +338,14 @@ int main() {
             double sep_j = jam_sig.col(i).cwiseAbs().maxCoeff();
             if (sep_j > 0) kkk1 = max(kkk1, sep_t / sep_j);
         }
-        double isr = 20.0 * log10(kkk1 / max(kkk, 1e-12));
+        double jsr = 20.0 * log10(kkk1 / max(kkk, 1e-12));
         double energy_ratio = (jam_energy + sep_target_energy) / input_energy;
 
         cout << "  输入范数=" << input_energy << " 干扰分离=" << jam_energy
              << " 目标分离=" << sep_target_energy << endl;
-        cout << "  ISR=" << isr << " dB  能量守恒比=" << energy_ratio
+        cout << "  JSR干扰抑制比=" << jsr << " dB  能量守恒比=" << energy_ratio
              << "  高阶谱脉冲=" << gaojiepu_count << "/" << nan1 << endl;
-        results.push_back({"NBJ", isr, energy_ratio, gaojiepu_count});
+        results.push_back({"NBJ", jsr, energy_ratio, gaojiepu_count});
     }
 
     // === 测试4: 无干扰纯目标 (基准) ===
@@ -375,13 +375,13 @@ int main() {
 
     // ── 汇总对比 ──
     cout << "\n===== 汇总: Module04 Case6 vs Module03 基准 =====" << endl;
-    cout << "干扰类型 | Module04 ISR(dB) | Module03基准(dB) | 能量守恒比 | 高阶谱脉冲" << endl;
+    cout << "干扰类型 | Module04 JSR干扰抑制比(dB) | Module03基准(dB) | 能量守恒比 | 高阶谱脉冲" << endl;
     cout << "---------|-----------------|----------------|-----------|----------" << endl;
-    cout << "ISRJ     | " << setw(15) << results[0].isr << " | ~21-24         | " << setw(9) << results[0].energy_ratio
+    cout << "ISRJ     | " << setw(15) << results[0].jsr << " | ~21-24         | " << setw(9) << results[0].energy_ratio
          << " | " << results[0].gaojiepu_count << "/" << nan1 << endl;
-    cout << "RDJ      | " << setw(15) << results[1].isr << " | ~22            | " << setw(9) << results[1].energy_ratio
+    cout << "RDJ      | " << setw(15) << results[1].jsr << " | ~22            | " << setw(9) << results[1].energy_ratio
          << " | " << results[1].gaojiepu_count << "/" << nan1 << endl;
-    cout << "NBJ      | " << setw(15) << results[2].isr << " | ~9.5           | " << setw(9) << results[2].energy_ratio
+    cout << "NBJ      | " << setw(15) << results[2].jsr << " | ~9.5           | " << setw(9) << results[2].energy_ratio
          << " | " << results[2].gaojiepu_count << "/" << nan1 << endl;
     cout << "无干扰   | " << setw(15) << "N/A" << " | N/A            | " << setw(9) << results[3].energy_ratio
          << " | " << results[3].gaojiepu_count << "/" << nan1 << endl;

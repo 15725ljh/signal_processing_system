@@ -11,7 +11,7 @@
  *   2. grDetection() - 对每个CPI进行干扰类型识别(时频分析+特征判别)
  *   3. countDuplicateVectors() - 统计识别结果,取众数作为最终判断
  *   4. jamTarDivi() - 对第一个脉冲执行干扰解耦(分离干扰和目标信号)
- *   5. 计算 ISR(干扰抑制比) = 20*log10(抑制后干信比/抑制前干信比)
+ *   5. 计算 JSR(干扰抑制比) = 20*log10(抑制后干信比/抑制前干信比)
  *
  * 依赖: EchoGenerator.h, GrDetection.h, JamTarDivi.h, CountDuplicateVectors.h,
  *       SignalWriter.h, Config.h
@@ -96,7 +96,7 @@ int main() {
 
         double kkk = s_echo_noise.cwiseAbs().maxCoeff() / Echo.row(0).cwiseAbs().maxCoeff();
         double kkk1 = jamResult.targetsignal.cwiseAbs().maxCoeff() / jamResult.jammingsignal.cwiseAbs().maxCoeff();
-        double ISR = 20.0 * std::log10(kkk1 / kkk);
+        double JSR = 20.0 * std::log10(kkk1 / kkk);
 
         // filename: txt文本, 包含4组信号(含噪目标回波/纯干扰/分离干扰/分离目标, 均为RowVectorXcd 1×nrn)
         std::string filename = std::string(OUTPUT_DIR) + "03_detection_type" + std::to_string(currentRealLabel) + "_分离信号_signals.txt";
@@ -105,12 +105,12 @@ int main() {
         auto t_end = std::chrono::high_resolution_clock::now();
         double elapsed = std::chrono::duration<double>(t_end - t_start).count();
 
-        results.push_back({currentRealLabel, dominant_type, correct_count, ISR, elapsed});
+        results.push_back({currentRealLabel, dominant_type, correct_count, JSR, elapsed});
 
         logFile << "RealLabel=" << currentRealLabel
                  << " | 识别=" << dominant_type << " (" << typeNames[dominant_type] << ")"
                  << " | 正确=" << correct_count << "/" << CpiNum
-                 << std::setprecision(2) << " | ISR=" << ISR << " dB"
+                 << std::setprecision(2) << " | JSR干扰抑制比=" << JSR << " dB"
                  << std::setprecision(3) << " | 耗时=" << elapsed << "s"
                  << " | " << filename << "\n";
     }
@@ -119,7 +119,7 @@ int main() {
     double total_time = std::chrono::duration<double>(t_total_end - t_total_start).count();
 
     logFile << "\n==================== 汇总 ====================\n";
-    logFile << "RealLabel | 识别结果 | 类型名称       | 正确率   | ISR(dB)  | 耗时(s)\n";
+    logFile << "RealLabel | 识别结果 | 类型名称       | 正确率   | JSR干扰抑制比(dB)  | 耗时(s)\n";
     logFile << "----------|----------|----------------|----------|----------|--------\n";
     int total_correct = 0;
     for (const auto& r : results) {

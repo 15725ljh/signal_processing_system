@@ -7,7 +7,7 @@
 4. 干扰定位 — 含干扰回波 STFT 叠加 Otsu 二值掩码
 5. 分离对比 — 含干扰回波/干扰/目标三线叠加
 6. 分离时频 — 分离后干扰/目标各自 STFT (scipy)
-7. 检测统计 — 柱状图: 各类型投票数 + ISR
+7. 检测统计 — 柱状图: 各类型投票数 + JSR干扰抑制比
 """
 
 import os
@@ -817,7 +817,7 @@ class DetectionStatsPlot(QWidget):
         ticks = [(i, self._TYPE_NAMES[i]) for i in range(4)]
         ax.setTicks([ticks])
 
-    def update_plot(self, detection_types, dominant_type, correct_count, cpiNum, isr, elapsed):
+    def update_plot(self, detection_types, dominant_type, correct_count, cpiNum, jsr, elapsed):
         """detection_types: (cpiNum,) int array"""
         if detection_types is None:
             return
@@ -857,7 +857,7 @@ class DetectionStatsPlot(QWidget):
         info = (
             f"识别结果: {dominant_type} ({type_name})\n"
             f"投票数: {correct_count}/{cpiNum}\n"
-            f"ISR (干扰抑制比): {isr:.1f} dB\n"
+            f"JSR干扰抑制比: {jsr:.1f} dB\n"
             f"  = 20·lg((max|目标分离|/max|干扰分离|)\n"
             f"         /(max|含噪目标|/max|含干扰回波|))\n"
             f"耗时: {elapsed*1000:.1f} ms"
@@ -1058,7 +1058,7 @@ class PlotPanel(QWidget):
         toolbar.addWidget(lbl_type)
 
         self._type_combo = QComboBox()
-        self._type_combo.setMinimumWidth(220)
+        self._type_combo.setMinimumWidth(380)
         self._type_combo.currentIndexChanged.connect(self._on_type_changed)
         toolbar.addWidget(self._type_combo)
 
@@ -1134,7 +1134,7 @@ class PlotPanel(QWidget):
             self._stats_plot.update_plot(
                 r.get("detection_types"), r.get("dominant_type", 0),
                 r.get("correct_count", 0), r.get("cpiNum", 0),
-                r.get("isr", 0.0), r.get("elapsed", 0.0),
+                r.get("jsr", 0.0), r.get("elapsed", 0.0),
             )
             return
 

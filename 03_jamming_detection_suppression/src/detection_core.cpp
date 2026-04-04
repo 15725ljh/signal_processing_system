@@ -8,7 +8,7 @@
  *   4. grDetection() 逐 CPI 识别干扰类型
  *   5. countDuplicateVectors() 统计识别结果
  *   6. jamTarDivi() 分离干扰和目标
- *   7. 计算 ISR
+ *   7. 计算 JSR
  *
  * 不修改任何现有头文件, 仅调用已有函数。
  */
@@ -94,8 +94,8 @@ DetectionResult run_detection(int realLabel, const std::string& config_path) {
     result.jamming_signal = jamResult.jammingsignal;
     result.target_signal = jamResult.targetsignal;
 
-    // ── 8. 计算 ISR (复刻 main.cpp 公式) ──
-    // ISR = 20*log10( (max|target|/max|jam|) / (max|s_echo_noise|/max|Echo.row(0)|) )
+    // ── 8. 计算 JSR (复刻 main.cpp 公式) ──
+    // JSR = 20*log10( (max|target|/max|jam|) / (max|s_echo_noise|/max|Echo.row(0)|) )
     double max_echo = result.echo_signal.row(0).cwiseAbs().maxCoeff();
     double max_noise_echo = result.s_echo_noise.cwiseAbs().maxCoeff();
     double max_jam = jamResult.jammingsignal.cwiseAbs().maxCoeff();
@@ -105,9 +105,9 @@ DetectionResult run_detection(int realLabel, const std::string& config_path) {
     double kkk1 = (max_jam > 1e-14) ? (max_tgt / max_jam) : 0.0;
 
     if (kkk > 1e-14 && kkk1 > 1e-14) {
-        result.isr = 20.0 * std::log10(kkk1 / kkk);
+        result.jsr = 20.0 * std::log10(kkk1 / kkk);
     } else {
-        result.isr = 0.0;
+        result.jsr = 0.0;
     }
 
     // ── 9. 计时 + 组装日志 ──
@@ -125,7 +125,7 @@ DetectionResult run_detection(int realLabel, const std::string& config_path) {
         << " (" << typeNames[result.dominant_type] << ")"
         << " | 正确=" << result.correct_count << "/" << cpiNum
         << std::setprecision(2)
-        << " | ISR=" << result.isr << " dB"
+        << " | JSR干扰抑制比=" << result.jsr << " dB"
         << std::setprecision(3)
         << " | 耗时=" << result.elapsed << "s";
 

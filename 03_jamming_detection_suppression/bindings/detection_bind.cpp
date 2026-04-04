@@ -136,7 +136,7 @@ static py::dict result_to_dict(const DetectionResult& r) {
     out["correct_count"]  = r.correct_count;
     out["cpiNum"]         = r.cpiNum;
     out["nrn"]            = r.nrn;
-    out["isr"]            = r.isr;
+    out["jsr"]            = r.jsr;
     out["elapsed"]        = r.elapsed;
     out["log_output"]     = r.log;
 
@@ -161,6 +161,6 @@ static py::dict run_detection_wrapper(int real_label, const py::dict& detection_
 PYBIND11_MODULE(detection_cpp, m) {
     m.doc() = "Radar jamming detection & suppression module (C++ backend)";
     m.def("run_detection", &run_detection_wrapper,
-          "Run jamming detection, separation and ISR evaluation for a given jamming type",
+          "Run jamming detection, separation and JSR evaluation for a given jamming type",
           py::arg("real_label"), py::arg("detection_cfg"));
 }

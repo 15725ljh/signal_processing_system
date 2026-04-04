@@ -308,7 +308,7 @@ class MainWindow(QMainWindow):
         self._right_splitter.addWidget(self._console_panel)
         self._right_splitter.setStretchFactor(0, 3)
         self._right_splitter.setStretchFactor(1, 1)
-        self._right_splitter.setSizes([540, 280])
+        self._right_splitter.setSizes([540, 360])
 
         self._main_splitter.addWidget(self._param_panel)
         self._main_splitter.addWidget(self._right_splitter)
@@ -574,7 +574,7 @@ class MainWindow(QMainWindow):
 
     def _reset_layout(self):
         self._main_splitter.setSizes([420, 1080])
-        self._right_splitter.setSizes([540, 280])
+        self._right_splitter.setSizes([540, 360])
 
     def _show_about(self):
         theme_label = "深色" if self._current_theme == "dark" else "浅色"

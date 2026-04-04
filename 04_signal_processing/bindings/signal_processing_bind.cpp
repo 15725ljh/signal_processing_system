@@ -232,7 +232,7 @@ static py::dict processing_decouple_to_dict(const ProcessingResultDecouple& r) {
         buf_flag(k) = r.decouple_flag(k);
     out["decouple_flag"] = flag;
 
-    out["isr_dB"] = r.isr_dB;
+    out["jsr_dB"] = r.jsr_dB;
     out["avg_threshold"] = r.avg_threshold;
     out["gaojiepu_count"] = r.gaojiepu_count;
     out["nrn"] = r.nrn;

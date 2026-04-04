@@ -52,7 +52,7 @@ def _run_processing_decouple_cpp(jam_type, config_dict):
         "target_signal":   result["target_signal"],
         "input_signal":    result["input_signal"],
         "decouple_flag":   result["decouple_flag"],
-        "isr_dB":          result["isr_dB"],
+        "jsr_dB":          result["jsr_dB"],
         "avg_threshold":   result["avg_threshold"],
         "gaojiepu_count":  result["gaojiepu_count"],
         "nrn":             result["nrn"],
@@ -250,7 +250,7 @@ class MainWindow(QMainWindow):
         self._right_splitter.addWidget(self._console_panel)
         self._right_splitter.setStretchFactor(0, 3)
         self._right_splitter.setStretchFactor(1, 1)
-        self._right_splitter.setSizes([540, 280])
+        self._right_splitter.setSizes([540, 360])
 
         self._main_splitter.addWidget(self._param_panel)
         self._main_splitter.addWidget(self._right_splitter)
@@ -513,13 +513,13 @@ class MainWindow(QMainWindow):
                 f"Case {arg}: RD map {nrn}x{nan1} | 耗时={elapsed*1000:.1f}ms"
             )
         elif func_type == "processing_decouple":
-            isr = result.get("isr_dB", 0.0)
+            jsr = result.get("jsr_dB", 0.0)
             gj_count = result.get("gaojiepu_count", 0)
             nan1 = result.get("nan1", 0)
             jam_name = _JAMMING_TYPE_NAMES.get(arg, f"Type {arg}")
             self._status_info.setText(
                 f"[{self._completed_cases}/{self._total_cases}] "
-                f"Case 6: ISR={isr:.1f}dB | "
+                f"Case 6: JSR干扰抑制比={jsr:.1f}dB | "
                 f"高阶谱={gj_count}/{nan1} | "
                 f"干扰: {jam_name} | 耗时={elapsed*1000:.1f}ms"
             )
@@ -539,7 +539,7 @@ class MainWindow(QMainWindow):
 
     def _reset_layout(self):
         self._main_splitter.setSizes([408, 1092])
-        self._right_splitter.setSizes([540, 280])
+        self._right_splitter.setSizes([540, 360])
 
     def _show_about(self):
         theme_label = "深色" if self._current_theme == "dark" else "浅色"

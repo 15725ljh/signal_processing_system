@@ -1,7 +1,7 @@
 """
 参数面板 — 信号处理 GUI (模块04)
 
-功能选择器 (CheckBox 多选, 与 01/02/03 风格一致) + 参数分组 + 干扰类型选择 + 派生参数
+功能选择器 (CheckBox 多选, 与 01/02/03 风格一致) + 参数分组 + 派生参数
 """
 
 import math
@@ -9,7 +9,7 @@ import math
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QGroupBox,
     QLabel, QPushButton, QScrollArea, QFrame,
-    QSizePolicy, QComboBox, QCheckBox, QSpinBox,
+    QSizePolicy, QCheckBox, QSpinBox,
 )
 from PySide6.QtCore import Signal, Qt
 
@@ -209,7 +209,6 @@ class ParamPanel(QWidget):
         layout.addWidget(self._create_decouple_params_group())
         layout.addWidget(self._create_echo_params_group())
         layout.addWidget(self._create_waveform_params_group())
-        layout.addWidget(self._create_jamming_selector())
         layout.addWidget(self._create_derived_info_group())
         layout.addStretch()
 
@@ -244,16 +243,6 @@ class ParamPanel(QWidget):
         btn_row.addStretch()
         layout.addLayout(btn_row)
 
-        return group
-
-    # ── 干扰类型选择 (ComboBox 单选, 仅 Case 6 使用) ──
-    def _create_jamming_selector(self):
-        group = QGroupBox("干扰类型选择 (Case 6)")
-        layout = QVBoxLayout(group)
-        self._jamming_combo = QComboBox()
-        for label, name in _JAMMING_TYPES.items():
-            self._jamming_combo.addItem(f"{label}: {name}", userData=label)
-        layout.addWidget(self._jamming_combo)
         return group
 
     # ── 操作按钮 ──
@@ -316,7 +305,6 @@ class ParamPanel(QWidget):
             edit._spin.setEnabled(not self._locked)
         for cb in self._type_checks.values():
             cb.setEnabled(not self._locked)
-        self._jamming_combo.setEnabled(not self._locked)
 
     # ── 参数分组 ──
     def _create_system_params_group(self):
@@ -439,9 +427,8 @@ class ParamPanel(QWidget):
         for label, cb in self._type_checks.items():
             if cb.isChecked():
                 if label in _JAMMING_CASES:
-                    jam_idx = self._jamming_combo.currentIndex()
-                    if jam_idx >= 0:
-                        jam_type = self._jamming_combo.itemData(jam_idx)
+                    # Case 6: 自动处理所有 5 种干扰类型
+                    for jam_type in _JAMMING_TYPES:
                         modes.append(("processing_decouple", jam_type))
                 else:
                     modes.append(("processing_rd", label))
@@ -456,7 +443,6 @@ class ParamPanel(QWidget):
                 edit._spin.setEnabled(False)
             for cb in self._type_checks.values():
                 cb.setEnabled(False)
-            self._jamming_combo.setEnabled(False)
         else:
             self._apply_lock_state()
 

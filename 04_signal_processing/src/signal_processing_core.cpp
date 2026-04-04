@@ -305,13 +305,31 @@ ProcessingResultDecouple run_processing_decouple(int jam_type, const std::string
     result.gaojiepu_count = gaojiepu_count;
     result.avg_threshold = threshold_sum / _nan1;
 
-    // ── 5. 计算 ISR ──
-    double input_energy = Radar_Sig.cwiseAbs().matrix().norm();
-    double jam_energy = pulses_jam.cwiseAbs().matrix().norm();
-    double target_energy = pulses_tgt.cwiseAbs().matrix().norm();
-    result.isr_dB = (jam_energy > 1e-15)
-                  ? 20.0 * log10(target_energy / jam_energy)
-                  : 0.0;
+    // ── 5. 计算 JSR (复刻 03 模块公式)
+    // JSR = 20*log10( (max|target|/max|jam|) / (max|s_echo_noise|/max|mixed|) )
+    // 即: 分离后干信比 / 抑制前干信比 = 抑制改善量
+    double sum_kkk = 0.0, sum_kkk1 = 0.0;
+    int valid_count = 0;
+    for (int i = 0; i < _nan1; ++i) {
+        double max_mixed  = Radar_Sig.col(i).cwiseAbs().maxCoeff();
+        double max_target = pulses_tgt.col(i).cwiseAbs().maxCoeff();
+        double max_jam    = pulses_jam.col(i).cwiseAbs().maxCoeff();
+        double max_noise_echo = echoResult.s_echo_noise.cwiseAbs().maxCoeff();
+
+        double kkk  = (max_mixed > 1e-14) ? (max_noise_echo / max_mixed) : 0.0;
+        double kkk1 = (max_jam > 1e-14)   ? (max_target / max_jam) : 0.0;
+
+        if (kkk > 1e-14 && kkk1 > 1e-14) {
+            sum_kkk  += kkk;
+            sum_kkk1 += kkk1;
+            valid_count++;
+        }
+    }
+    if (valid_count > 0) {
+        result.jsr_dB = 20.0 * log10((sum_kkk1 / valid_count) / (sum_kkk / valid_count));
+    } else {
+        result.jsr_dB = 0.0;
+    }
 
     // ── 6. 计时 + 日志 ──
     auto t_end = chrono::high_resolution_clock::now();
@@ -323,7 +341,7 @@ ProcessingResultDecouple run_processing_decouple(int jam_type, const std::string
     ostringstream oss;
     oss << fixed << setprecision(3);
     oss << "Case6 解耦 | 干扰=" << jam_type << "(" << jam_name << ")"
-        << " | ISR=" << result.isr_dB << " dB"
+        << " | JSR干扰抑制比=" << result.jsr_dB << " dB"
         << " | 高阶谱=" << result.gaojiepu_count << "/" << _nan1
         << " | 平均阈值=" << result.avg_threshold
         << " | 耗时=" << result.elapsed << "s";

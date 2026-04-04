@@ -12,7 +12,7 @@
   3. 信号矩阵 — 2D 热力图 实部/虚部/幅度/相位
   4. 距离-多普勒图 — Cases 1-5 RD map (jet colormap)
   5. 解耦结果 — Case 6 干扰/目标/原始 (单脉冲)
-  6. 结果摘要 — 峰值功率/ISR 统计柱状图
+  6. 结果摘要 — 峰值功率/JSR 统计柱状图
 """
 
 import os
@@ -508,6 +508,17 @@ class RDMapPlotWidget(QWidget):
         self._xi = None
         self._dv = None
 
+        # 空状态提示文字 (QLabel 覆盖在 pyqtgraph 上方)
+        self._hint_label = pg.QtWidgets.QLabel("", self._layout_widget)
+        self._hint_label.setAlignment(pg.QtCore.Qt.AlignmentFlag.AlignCenter)
+        self._hint_label.setStyleSheet(
+            f"color: {pt['pg_fg']}; font-size: 14px; "
+            "background: transparent; padding: 20px;"
+        )
+        self._hint_label.setWordWrap(True)
+        self._hint_label.setVisible(False)
+        self._layout_widget.installEventFilter(self)
+
         def on_mouse(evt):
             if self._rd_data is None:
                 return
@@ -538,6 +549,7 @@ class RDMapPlotWidget(QWidget):
         if rd_map is None or xi is None or dv is None:
             return
 
+        self._hint_label.setVisible(False)
         self._rd_data = rd_map
         self._xi = xi
         self._dv = dv
@@ -577,6 +589,28 @@ class RDMapPlotWidget(QWidget):
         self._rd_data = None
         self._xi = None
         self._dv = None
+        self._hint_label.setVisible(False)
+        self._plot.setTitle("距离-多普勒图", color=_pt()["pg_fg"], size="11pt")
+
+    def show_hint(self, text):
+        """在图中显示提示文字（如 Case 6 无 RD 图时）"""
+        self.clear_data()
+        self._hint_label.setText(text)
+        self._hint_label.setVisible(True)
+        self._hint_label.raise_()
+        self._center_hint_label()
+        self._plot.setTitle("距离-多普勒图", color=_pt()["pg_fg"], size="11pt")
+
+    def eventFilter(self, obj, event):
+        if obj is self._layout_widget and event.type() == pg.QtCore.QEvent.Type.Resize:
+            self._center_hint_label()
+        return super().eventFilter(obj, event)
+
+    def _center_hint_label(self):
+        w = self._layout_widget.width()
+        h = self._layout_widget.height()
+        if w > 0 and h > 0:
+            self._hint_label.setGeometry(0, 0, w, h)
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -656,7 +690,7 @@ class DecouplePlot(QWidget):
     def _on_sig_toggle(self, btn_id, checked):
         if checked:
             self._sig_type = btn_id
-            self._apply_visibility()
+            self._apply_data()
 
     def _apply_data(self):
         if self._input_sig is None:
@@ -668,20 +702,22 @@ class DecouplePlot(QWidget):
         t_axis = np.arange(len(col_mix)) / self._fs
 
         t_us = t_axis * 1e6
-        self._c_mix.setData(t_us, np.abs(col_mix))
-        self._c_jam.setData((t_us, np.abs(col_jam)) if col_jam is not None else ([], []))
-        self._c_tgt.setData((t_us, np.abs(col_tgt)) if col_tgt is not None else ([], []))
-        self._apply_visibility()
+        show_mix = self._sig_type in (0, 3)
+        show_jam = self._sig_type in (1, 3)
+        show_tgt = self._sig_type in (2, 3)
 
-    def _apply_visibility(self):
-        if self._sig_type == 3:
-            self._c_mix.setVisible(True)
-            self._c_jam.setVisible(True)
-            self._c_tgt.setVisible(True)
+        if show_mix:
+            self._c_mix.setData(t_us, np.abs(col_mix))
         else:
-            self._c_mix.setVisible(self._sig_type == 0)
-            self._c_jam.setVisible(self._sig_type == 1)
-            self._c_tgt.setVisible(self._sig_type == 2)
+            self._c_mix.setData([], [])
+        if show_jam and col_jam is not None:
+            self._c_jam.setData(t_us, np.abs(col_jam))
+        else:
+            self._c_jam.setData([], [])
+        if show_tgt and col_tgt is not None:
+            self._c_tgt.setData(t_us, np.abs(col_tgt))
+        else:
+            self._c_tgt.setData([], [])
         self._pw.getViewBox().autoRange()
 
     def update_plot(self, input_sig, jam_sig, tgt_sig, fs, pulse_idx=0, jam_type=None):
@@ -812,7 +848,7 @@ class ResultSummaryPlot(QWidget):
 
         self._bar_plot.setYRange(y_min, y_max, padding=0.05)
 
-    def update_decouple(self, jam_type, isr_dB, avg_threshold, gaojiepu_count, nan1, decouple_flag, elapsed):
+    def update_decouple(self, jam_type, jsr_dB, avg_threshold, gaojiepu_count, nan1, decouple_flag, elapsed):
         self._clear_bars()
         self._mode = "decouple"
 
@@ -827,8 +863,8 @@ class ResultSummaryPlot(QWidget):
             gaojiepu_count_actual = gaojiepu_count
 
         colors = ["#5b8def", "#e07050", "#50c050"]
-        labels = ["正常脉冲", "高阶谱脉冲", "ISR (dB)"]
-        values = [normal_count, gaojiepu_count_actual, max(isr_dB, 0)]
+        labels = ["正常脉冲", "高阶谱脉冲", "JSR干扰抑制比 (dB)"]
+        values = [normal_count, gaojiepu_count_actual, max(jsr_dB, 0)]
         for i in range(n_bins):
             bar = pg.BarGraphItem(x=[i], height=[values[i]], width=self._bar_width,
                                   brush=pg.mkBrush(colors[i]),
@@ -844,14 +880,14 @@ class ResultSummaryPlot(QWidget):
         jam_name = jam_names.get(jam_type, f"Type {jam_type}")
 
         self._bar_plot.setTitle(
-            f"Case 6 解耦: ISR={isr_dB:.1f} dB, 高阶谱={gaojiepu_count_actual}/{nan1}",
+            f"Case 6 解耦: JSR干扰抑制比={jsr_dB:.1f} dB, 高阶谱={gaojiepu_count_actual}/{nan1}",
             color=_pt()["pg_fg"], size="11pt",
         )
 
         info = (
             f"Case 6 时频干扰解耦\n"
             f"干扰类型: {jam_type} ({jam_name})\n"
-            f"ISR: {isr_dB:.1f} dB\n"
+            f"JSR干扰抑制比: {jsr_dB:.1f} dB\n"
             f"平均阈值: {avg_threshold:.2f}\n"
             f"正常/高阶谱: {normal_count}/{gaojiepu_count_actual}\n"
             f"耗时: {elapsed*1000:.1f} ms"
@@ -1038,7 +1074,7 @@ class PlotPanel(QWidget):
         toolbar.addWidget(lbl_case)
 
         self._case_combo = QComboBox()
-        self._case_combo.setMinimumWidth(200)
+        self._case_combo.setMinimumWidth(380)
         self._case_combo.currentIndexChanged.connect(self._on_case_changed)
         toolbar.addWidget(self._case_combo)
 
@@ -1258,7 +1294,7 @@ class PlotPanel(QWidget):
 
         # ── 清除不适用的图表 ──
         if func_type != "processing_rd":
-            self._rd_plot.clear_data()
+            self._rd_plot.show_hint("Case 6 不产生距离-多普勒图\n请查看「解耦结果」标签页")
         if func_type != "processing_decouple":
             self._decouple_plot.clear_data()
 
@@ -1278,7 +1314,7 @@ class PlotPanel(QWidget):
             self._summary_plot.update_all_rd(rd_results)
         elif func_type == "processing_decouple":
             self._summary_plot.update_decouple(
-                arg, result.get("isr_dB", 0), result.get("avg_threshold", 0),
+                arg, result.get("jsr_dB", 0), result.get("avg_threshold", 0),
                 result.get("gaojiepu_count", 0), result.get("nan1", 0),
                 result.get("decouple_flag"), elapsed,
             )

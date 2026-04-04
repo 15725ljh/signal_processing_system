@@ -28,7 +28,7 @@ struct DetectionResult {
     int correct_count = 0;             // 投票给 dominant_type 的 CPI 数
     int cpiNum = 0;                    // CPI 数量
     int nrn = 0;                       // 距离向采样点数
-    double isr = 0.0;                  // 干扰抑制比 (dB)
+    double jsr = 0.0;                  // 干扰抑制比 (dB)
     double elapsed = 0.0;              // 计算耗时 (s)
     std::string log;                   // C++ 日志输出
 };

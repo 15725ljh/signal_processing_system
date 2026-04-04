@@ -32,22 +32,22 @@ for RealLabel = 1:5
 
     kkk = 20*log10(max(abs(s_echo_noise)) / max(abs(Echo(1, :))));
     kkk1 = 20*log10(max(abs(Targetsignal)) / max(abs(jammingsignal)));
-    ISR = kkk1 - kkk;
+    JSR = kkk1 - kkk;
 
     filename = sprintf('../output/matlab_all_signals_type%d.mat', RealLabel);
     save(filename, 's_echo_noise', 'Echo', 'jammingsignal', 'Targetsignal', '-v7.3');
 
     elapsed = toc(t_start);
-    results(RealLabel, :) = [RealLabel, dominant_type, correct_count, ISR, elapsed];
+    results(RealLabel, :) = [RealLabel, dominant_type, correct_count, JSR, elapsed];
 
-    fprintf(logFile, 'RealLabel=%d | 识别=%d (%s) | 正确=%d/%d | ISR=%.2f dB | 耗时=%.3fs | %s\n', ...
-        RealLabel, dominant_type, typeNames{dominant_type+1}, correct_count, CpiNum, ISR, elapsed, filename);
+    fprintf(logFile, 'RealLabel=%d | 识别=%d (%s) | 正确=%d/%d | JSR干扰抑制比=%.2f dB | 耗时=%.3fs | %s\n', ...
+        RealLabel, dominant_type, typeNames{dominant_type+1}, correct_count, CpiNum, JSR, elapsed, filename);
 end
 
 total_time = toc(t_total_start);
 
 fprintf(logFile, '\n==================== 汇总 ====================\n');
-fprintf(logFile, 'RealLabel | 识别结果 | 类型名称       | 正确率   | ISR(dB)  | 耗时(s)\n');
+fprintf(logFile, 'RealLabel | 识别结果 | 类型名称       | 正确率   | JSR干扰抑制比(dB)  | 耗时(s)\n');
 fprintf(logFile, '----------|----------|----------------|----------|----------|--------\n');
 total_correct = 0;
 for i = 1:5

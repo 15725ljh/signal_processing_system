@@ -42,7 +42,7 @@ def _run_detection_cpp(label, params):
         "correct_count":   result["correct_count"],
         "cpiNum":          result["cpiNum"],
         "nrn":             result["nrn"],
-        "isr":             result["isr"],
+        "jsr":             result["jsr"],
         "elapsed":         result["elapsed"],
         "log_output":      result.get("log_output", ""),
     }
@@ -94,9 +94,9 @@ class ComputeThread(QThread):
                 self.logSignal.emit(
                     f"Label {label} 完成 (耗时 {elapsed*1000:.1f} ms)", "success"
                 )
-                isr = result.get("isr", 0.0)
+                jsr = result.get("jsr", 0.0)
                 self.logSignal.emit(
-                    f"ISR (干扰抑制比) = {isr:.1f} dB, "
+                    f"JSR干扰抑制比 = {jsr:.1f} dB, "
                     f"计算方式: 20·lg((max|目标分离|/max|干扰分离|)/(max|含噪目标|/max|含干扰回波|))",
                     "info",
                 )
@@ -238,7 +238,7 @@ class MainWindow(QMainWindow):
         self._right_splitter.addWidget(self._console_panel)
         self._right_splitter.setStretchFactor(0, 3)
         self._right_splitter.setStretchFactor(1, 1)
-        self._right_splitter.setSizes([540, 280])
+        self._right_splitter.setSizes([540, 360])
 
         self._main_splitter.addWidget(self._param_panel)
         self._main_splitter.addWidget(self._right_splitter)
@@ -499,12 +499,12 @@ class MainWindow(QMainWindow):
             dominant = result.get("dominant_type", 0)
             correct  = result.get("correct_count", 0)
             cpiNum   = result.get("cpiNum", 0)
-            isr      = result.get("isr", 0.0)
+            jsr      = result.get("jsr", 0.0)
             elapsed  = result.get("elapsed", 0.0)
             self._status_info.setText(
                 f"已完成 {len(results)} 个类型 | "
                 f"识别={dominant} 正确={correct}/{cpiNum} "
-                f"ISR(干扰抑制比)={isr:.1f}dB [20·lg((max|目标分离|/max|干扰分离|)/(max|含噪目标|/max|含干扰回波|))] "
+                f"JSR干扰抑制比={jsr:.1f}dB [20·lg((max|目标分离|/max|干扰分离|)/(max|含噪目标|/max|含干扰回波|))] "
                 f"耗时={elapsed*1000:.1f}ms"
             )
 
@@ -517,7 +517,7 @@ class MainWindow(QMainWindow):
 
     def _reset_layout(self):
         self._main_splitter.setSizes([408, 1092])
-        self._right_splitter.setSizes([540, 280])
+        self._right_splitter.setSizes([540, 360])
 
     def _show_about(self):
         theme_label = "深色" if self._current_theme == "dark" else "浅色"
@@ -529,7 +529,7 @@ class MainWindow(QMainWindow):
             "支持 5 种干扰类型检测\n"
             "ISDJ / ISRJ / ISCJ / NBJ / RDJ\n\n"
             "功能: STFT 时频分析 → Otsu 干扰定位\n"
-            "      → 干扰类型识别 → 干扰目标分离 → ISR 评估\n\n"
+            "      → 干扰类型识别 → 干扰目标分离 → JSR干扰抑制比评估\n\n"
             f"当前主题: {theme_label}\n"
             "技术栈: PySide6 + pyqtgraph + numpy/scipy\n\n"
             "作者: XDU_LJH",
