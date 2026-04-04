@@ -1,0 +1,13 @@
+venv/
+build/
+!build/.gitkeep
+dist/
+!dist/.gitkeep
+lib/
+*.so
+*.pyd
+*.dll
+*.c
+__pycache__/
+*.pyc
+.DS_Store

@@ -75,6 +75,7 @@ signal_processing_system/
 │   ├── BUILD_GUIDE.md          # 跨平台编译运行手册
 │   ├── WAVEFORM_GUI_DESIGN.md           # 波形生成 GUI 设计文档
 │   ├── WAVEFORM_GUI_DELIVERY_SUMMARY.md # 波形生成 GUI 交付说明
+│   ├── JAMMING_GUI_DESIGN.md            # 干扰生成 GUI 设计文档
 │   ├── 01_waveform_generation.md
 │   ├── 02_jamming_generation.md
 │   ├── 03_jamming_detection_suppression.md
@@ -91,7 +92,10 @@ signal_processing_system/
 │   ├── include/                # 头文件(parameters.h/Module0.h/Module1.h/waveform_core.h/waveform_params.h)
 │   ├── src/                    # 源文件(main.cpp/Module1.cpp/waveform_core.cpp)
 │   └── bindings/               # pybind11 绑定(waveform_bind.cpp, 供GUI使用)
-├── 02_jamming_generation/      # 模块2: 干扰生成(10种模式)
+├── 02_jamming_generation/      # 模块2: 干扰生成(10种模式) + libjamming_core.a
+│   ├── include/                # 头文件(parameters.h/Module0.h/Module2.h/jamming_core.h/jamming_params.h)
+│   ├── src/                    # 源文件(main.cpp/Module2.cpp/jamming_core.cpp)
+│   └── bindings/               # pybind11 绑定(jamming_bind.cpp, 供GUI使用)
 ├── 03_jamming_detection_suppression/ # 模块3: 干扰识别与抑制(5种类型)
 ├── 04_signal_processing/       # 模块4: 信号处理(6种模式)
 ├── GUI_waveform/               # PySide6 GUI(链接模块01静态库)

@@ -48,6 +48,21 @@ endif()
 
 file(GLOB_RECURSE SOURCES "src/*.cpp")  # 递归收集src/下所有.cpp源文件
 
+# 静态库目标: 供 GUI_detection 通过 pybind11 链接
+add_library(detection_core STATIC
+    src/detection_core.cpp
+)
+target_include_directories(detection_core PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${EIGEN_INCLUDE_DIR}
+    ${FFTW_INCLUDE_DIR}
+    ${NLOHMANN_INCLUDE_DIR}
+)
+target_link_libraries(detection_core PRIVATE fftw3)
+if(OpenMP_CXX_FOUND)
+    target_link_libraries(detection_core PRIVATE OpenMP::OpenMP_CXX)
+endif()
+
 add_executable(jamming_det_sup ${SOURCES}) # 构建可执行目标 jamming_det_sup
 
 target_include_directories(jamming_det_sup PRIVATE

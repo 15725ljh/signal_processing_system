@@ -29,25 +29,28 @@ mkdir -p build && cd build && cmake .. && cmake --build . -j$(sysctl -n hw.ncpu)
 # GUI (Python)
 cd GUI_waveform && pip install -r requirements.txt && python app.py
 cd GUI_jamming && pip install -r requirements.txt && python app.py
+cd GUI_detection && pip install -r requirements.txt && python app.py
 ```
 
 ## Architecture
 
-Four independent C++ modules, sharing a JSON config system. Each module has its own `src/main.cpp` entry point and builds to a standalone executable. Module 01 additionally builds `libwaveform_core.a`, Module 02 builds `libjamming_core.a`, both shared with their respective GUIs.
+Four independent C++ modules, sharing a JSON config system. Each module has its own `src/main.cpp` entry point and builds to a standalone executable. Module 01 builds `libwaveform_core.a`, Module 02 builds `libjamming_core.a`, Module 03 builds `libdetection_core.a`, each shared with their respective GUIs.
 
 ```
 01_waveform_generation/    → waveform_gen + libwaveform_core.a (5 waveform modes)
 02_jamming_generation/     → jamming_gen    (10 jamming types)
-03_jamming_detection_suppression/ → jamming_det_sup (5 detection types, fc=35GHz independent)
+03_jamming_detection_suppression/ → jamming_det_sup + libdetection_core.a (5 detection types, fc=35GHz independent)
 04_signal_processing/      → signal_proc    (6 processing algorithms + jamming recognition)
 GUI_waveform/              → PySide6 app → links libwaveform_core.a via pybind11
 GUI_jamming/               → PySide6 app → links libjamming_core.a via pybind11
+GUI_detection/             → PySide6 app → links libdetection_core.a via pybind11
 ```
 
 ### Static Libraries for GUI
 
 - **Module 01** builds `libwaveform_core.a` (5 waveform generation functions in `waveform_core.cpp`). `GUI_waveform/` links it via pybind11 binding at `01_waveform_generation/bindings/waveform_bind.cpp`.
 - **Module 02** builds `libjamming_core.a` (10 jamming generation functions in `jamming_core.cpp`). `GUI_jamming/` links it via pybind11 binding at `02_jamming_generation/bindings/jamming_bind.cpp`. Requires Eigen + FFTW3.
+- **Module 03** builds `libdetection_core.a` (detection+separation pipeline in `detection_core.cpp`). `GUI_detection/` links it via pybind11 binding at `03_jamming_detection_suppression/bindings/detection_bind.cpp`. Requires Eigen + FFTW3. Config injection via temp JSON file → `Config::instance().loadFromFile()`.
 
 ### Inter-Module Data Flow
 
@@ -57,12 +60,13 @@ Module 02 (outputs 20 files) ──→ Module 04 (shibie + Case6 load jammed dat
 Module 03 (outputs 6 files)  ←→  Completely independent (no file exchange)
 GUI_waveform ──pybind11──→ Module 01 only (in-memory numpy arrays, no .dat file I/O)
 GUI_jamming  ──pybind11──→ Module 02 only (in-memory numpy arrays, no .dat file I/O)
+GUI_detection ──pybind11──→ Module 03 only (in-memory numpy arrays, temp JSON for config injection)
 ```
 
 - Module 04 is the sole data consumer. `load_case_data(mode)` loads per-Case matching data from modules 01/02.
 - Module 02 Cases 1-3 (repeater-type: RDJ, VDJ, ISRJ) internally generate target echoes instead of loading from Module 01. Cases 4-10 (generative-type) are self-contained.
 - Recommended run order: 01 → 02 → 04. Module 03 is independent.
-- **Config system**: `Config.h` singleton loads `config.json` at runtime. Supports `//` and `#` comments, trailing commas, null-safe access with defaults. File search order: env var `SIGNAL_PROC_CONFIG` → current dir → parent dir → `~/.signal_processing/config.json`.
+- **Config system**: `Config.h` singleton loads `config.json` at runtime. Supports `//` and `#` comments, trailing commas, null-safe access with defaults. File search order: env var `SPS_CONFIG` → current dir → parent dir → `~/.config/sps/config.json`.
 - **Module 03 is independent**: Uses its own parameter set (fc=35GHz Ka-band, B=80MHz, R0=1000m, nrn=2048) separate from modules 01/02/04 (fc=16GHz). Parameters are in the `detection_suppression.*` section of config.json.
 - **Utility layer**: `Module0.h` (in each module) provides shared FFT/IFFT, filtering, window functions. `parameters.h` defines system parameter accessors.
 - **Output**: All modules write to `output/` — `.dat` (binary with row/col header + complex pairs) and `.txt` files. Naming: `{module}_{Case|type}_{description}.{dat|txt}`.
@@ -80,12 +84,13 @@ Located in `third_party/`: Eigen 3.4.0 (header-only), FFTW 3.3.10 (compiled), mi
 
 - All signal processing logic lives in header files (`include/*.h`) with inline/template implementations. `src/` contains only `main.cpp` entry points and module-specific implementations.
 - Module 01's `waveform_core.cpp` is the exception — extracted shared code for GUI reuse.
+- Module 03's `detection_core.cpp` is another exception — thin wrapper that assembles the detection+separation pipeline for GUI, reusing all existing header-only algorithms without modification.
 - Chinese comments are used extensively alongside English — preserve bilingual style when editing.
 - Module parameter headers (`parameters.h`) are duplicated across modules 01/02/04 rather than shared — maintain consistency when modifying.
 
 ## GUI Platform Notes
 
-- **Build artifacts**: `GUI_waveform/lib/` contains `waveform_cpp.pyd/.so` and MinGW DLLs. `GUI_jamming/lib/` contains `jamming_cpp.pyd` and MinGW DLLs. `app.py` registers `lib/` in `sys.path` at startup. Both `lib/` directories are `.gitignore`d.
+- **Build artifacts**: `GUI_waveform/lib/` contains `waveform_cpp.pyd/.so` and MinGW DLLs. `GUI_jamming/lib/` contains `jamming_cpp.pyd` and MinGW DLLs. `GUI_detection/lib/` contains `detection_cpp.pyd` and MinGW DLLs. `app.py` registers `lib/` in `sys.path` at startup. All `lib/` directories are `.gitignore`d.
 - **Windows 11 taskbar icon**: Qt's native `setWindowIcon` is insufficient. The fix requires three elements together: (1) `SetCurrentProcessExplicitAppUserModelID` before window creation, (2) `SetClassLongPtrW(GCLP_HICONSM/HICON)` for class-level icon persistence, (3) `QTimer.singleShot(200, ...)` deferred call in `showEvent` to bypass Qt's internal icon reset. See `ui/main_window.py:_apply_win32_taskbar_icon()`.
 - **SVG export bug**: pyqtgraph 0.14.0 `SVGExporter` crashes on space-separated path coords. Patched in `venv/Lib/site-packages/pyqtgraph/exporters/SVGExporter.py`.
 - **Icon loading**: `assets/icon_b64.txt` stores base64-encoded PNG, loaded at runtime. `assets/app_icon.ico` used for Win32 API and PyInstaller exe icon.
