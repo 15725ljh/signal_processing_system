@@ -74,7 +74,6 @@ signal_processing_system/
 │   ├── README.md               # 项目概述(本文件)
 │   ├── BUILD_GUIDE.md          # 跨平台编译运行手册
 │   ├── WAVEFORM_GUI_DESIGN.md           # 波形生成 GUI 设计文档
-│   ├── WAVEFORM_GUI_DELIVERY_SUMMARY.md # 波形生成 GUI 交付说明
 │   ├── JAMMING_GUI_DESIGN.md            # 干扰生成 GUI 设计文档
 │   ├── 01_waveform_generation.md
 │   ├── 02_jamming_generation.md
@@ -100,6 +99,8 @@ signal_processing_system/
 ├── 04_signal_processing/       # 模块4: 信号处理(6种模式)
 ├── GUI_waveform/               # PySide6 GUI(链接模块01静态库)
 ├── GUI_jamming/                # PySide6 GUI(链接模块02静态库)
+├── GUI_detection/              # PySide6 GUI(链接模块03静态库)
+├── GUI_signal_processing/      # PySide6 GUI(链接模块04+01静态库)
 └── output/                     # 统一输出目录
 ```
 
@@ -134,7 +135,9 @@ signal_processing_system/
 
 GUI_waveform (PySide6界面) ← 封装模块01(波形生成)，通过pybind11直接调用C++
   GUI_jamming (PySide6界面) ← 封装模块02(干扰生成)，通过pybind11直接调用C++
-  两个GUI独立运行，不读写.dat文件，数据通过内存numpy数组传递
+  GUI_detection (PySide6界面) ← 封装模块03(干扰识别与抑制)，通过pybind11直接调用C++
+  GUI_signal_processing (PySide6界面) ← 封装模块04(信号处理)+模块01(波形生成)，通过pybind11直接调用C++
+  四个GUI独立运行，不读写.dat文件，数据通过内存numpy数组传递
 ```
 
 **运行顺序建议**: 01 → 02 → 04 (模块03可独立运行)

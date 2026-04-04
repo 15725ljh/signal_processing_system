@@ -1,11 +1,11 @@
 @echo off
 setlocal enabledelayedexpansion
 chcp 65001 >nul
-
-set ROOT=C:\Code\C++\signal_processing_system
+cd /d "%~dp0"
+set ROOT=%cd%
 
 echo ========================================
-echo   Building all 4 GUIs in parallel
+echo   Building all 4 GUIs
 echo ========================================
 echo.
 

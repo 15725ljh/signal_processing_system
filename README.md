@@ -57,14 +57,14 @@
 - **热配置** — 修改 `config.json` 即时生效，支持 `//` 和 `#` 行注释
 - **级联处理** — 模块间通过 `.dat` 文件传递数据，模块 02 支持 10 种干扰的级联叠加
 - **Windows 原生** — 针对 Windows x64 编译，内置 FFTW 源码，MSVC/MinGW 工具链
-- **GUI 界面** — 两个独立 PySide6 桌面应用：波形生成 GUI + 干扰生成 GUI，pybind11 直调 C++ 引擎
+- **GUI 界面** — 四个独立 PySide6 桌面应用：波形生成 + 干扰生成 + 干扰识别 + 信号处理，pybind11 直调 C++ 引擎，支持 PyInstaller 打包为独立 exe
 - **轻量依赖** — 仅依赖 Eigen 和 FFTW 两个第三方库，JSON 解析和 Bessel 函数为自实现
 
 ## 快速开始
 
 ```bash
 # 1. 克隆仓库 (Windows 分支)
-git clone -b feature/win-waveform-jamming-gui https://github.com/15725ljh/signal_processing_system.git
+git clone -b feature/all-guis-windows https://github.com/15725ljh/signal_processing_system.git
 cd signal_processing_system
 
 # 2. 安装依赖
@@ -99,7 +99,7 @@ cmake --build . -j%NUMBER_OF_PROCESSORS%
 | 配置解析 | 自实现 mini JSON (~215行) | JSON 参数文件解析 |
 | Bessel 函数 | 自实现 `bessel_i0()` Taylor 级数 | Kaiser 窗函数 |
 | 构建系统 | CMake 3.14+ | 跨平台构建 |
-| GUI | PySide6 + pybind11 | 波形/干扰可视化界面 |
+| GUI | PySide6 + pybind11 | 四 GUI 可视化界面 + exe 打包 |
 
 ## 10 种干扰模式
 
@@ -136,6 +136,9 @@ signal_processing_system/
 ├── 04_signal_processing/       # 模块4: 信号处理(6种模式)
 ├── GUI_waveform/               # PySide6 GUI (链接模块01静态库)
 ├── GUI_jamming/                # PySide6 GUI (链接模块02静态库)
+├── GUI_detection/              # PySide6 GUI (链接模块03静态库)
+├── GUI_signal_processing/      # PySide6 GUI (链接模块04+01静态库)
+├── build_all.bat               # 一键构建全部 4 个 GUI exe
 ├── docs/                       # 统一文档目录
 └── output/                     # 运行输出目录
 ```
@@ -144,13 +147,15 @@ signal_processing_system/
 
 | 文档 | 说明 |
 |------|------|
-| [构建指南](docs/BUILD_GUIDE.md) | 跨平台编译运行手册 |
+| [构建指南](docs/BUILD_GUIDE.md) | 编译运行 + GUI 打包手册 |
 | [波形生成](docs/01_waveform_generation.md) | 模块 01 详解 |
 | [干扰生成](docs/02_jamming_generation.md) | 模块 02 详解 |
 | [检测抑制](docs/03_jamming_detection_suppression.md) | 模块 03 详解 |
 | [信号处理](docs/04_signal_processing.md) | 模块 04 详解 |
-| [波形生成 GUI 设计](docs/WAVEFORM_GUI_DESIGN.md) | PySide6 波形生成界面文档 |
-| [干扰生成 GUI 设计](docs/JAMMING_GUI_DESIGN.md) | PySide6 干扰生成界面文档 |
+| [波形生成 GUI 设计](docs/WAVEFORM_GUI_DESIGN.md) | GUI_waveform 界面文档 |
+| [干扰生成 GUI 设计](docs/JAMMING_GUI_DESIGN.md) | GUI_jamming 界面文档 |
+| [干扰识别 GUI 设计](docs/DETECTION_GUI_DESIGN.md) | GUI_detection 界面文档 |
+| [信号处理 GUI 设计](docs/SIGNAL_PROCESSING_GUI_DESIGN.md) | GUI_signal_processing 界面文档 |
 
 ## License
 

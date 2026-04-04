@@ -111,6 +111,7 @@ GUI_waveform/
 | 载频序列 | FreqSeqPlot | 每脉冲载频柱状图 (含十字准线) |
 | 随机相位 | PhaseSeqPlot | phi1相位角散点图 (Case2/5) |
 | STFT | STFTPlotWidget | 时频分析图 (去数字载波后) |
+| 距离-多普勒 | RDMapPlotWidget | RD 热力图 (去斜+fftshift，物理坐标 m/m/s，十字准线) |
 
 **导出功能：**
 - PNG 图片导出 (1920px 宽, pyqtgraph ImageExporter)

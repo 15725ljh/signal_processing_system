@@ -8,7 +8,7 @@
 
 ```
 03_jamming_detection_suppression/
-├── CMakeLists.txt              # 构建配置，输出可执行文件 jamming_det_sup
+├── CMakeLists.txt              # 构建配置，输出可执行文件 jamming_det_sup + libdetection_core.a 静态库
 ├── include/
 │   ├── EchoGenerator.h         # 回波信号生成器(含目标回波+干扰叠加+AWGN)
 │   ├── JammingSimulator.h      # 5种干扰信号模拟器类(ISCJ/ISDJ/ISRJ/NBJ/RDJ)
@@ -18,8 +18,11 @@
 │   ├── TfrStft.h               # 短时傅里叶变换(STFT)实现
 │   ├── CountDuplicateVectors.h # 向量重复计数与统计
 │   └── SignalWriter.h          # 信号数据文件写入
-└── src/
-    └── main.cpp                # 入口：Config::instance().load() → 自动循环5种干扰类型测试
+├── src/
+│   ├── main.cpp                # 入口：Config::instance().load() → 自动循环5种干扰类型测试
+│   └── detection_core.cpp      # 共享库：检测+分离流水线封装(供 GUI 使用)
+└── bindings/
+    └── detection_bind.cpp      # pybind11 绑定（薄适配层，供 GUI_detection 使用）
 ```
 
 ## 独立参数体系

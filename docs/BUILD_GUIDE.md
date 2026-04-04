@@ -27,7 +27,9 @@ signal_processing_system/
 ├── 03_jamming_detection_suppression/ # 模块3: 干扰识别与抑制(5种类型)
 ├── 04_signal_processing/           # 模块4: 信号处理(6种模式)
 ├── GUI_waveform/                   # PySide6 GUI (波形生成)
-└── GUI_jamming/                    # PySide6 GUI (干扰生成)
+├── GUI_jamming/                    # PySide6 GUI (干扰生成)
+├── GUI_detection/                  # PySide6 GUI (干扰识别与抑制)
+└── GUI_signal_processing/          # PySide6 GUI (信号处理)
 ```
 
 ---
@@ -166,8 +168,10 @@ cmake --build . -j$(sysctl -n hw.ncpu)      # macOS
 | `03_jamming_detection_suppression/jamming_det_sup` | 干扰识别与抑制 |
 | `04_signal_processing/signal_proc` | 信号处理 |
 
-模块01额外生成 `libwaveform_core.a` 静态库，供 GUI_waveform 的 pybind11 绑定使用。
+模块01额外生成 `libwaveform_core.a` 静态库，供 GUI_waveform 和 GUI_signal_processing 的 pybind11 绑定使用。
 模块02额外生成 `libjamming_core.a` 静态库，供 GUI_jamming 的 pybind11 绑定使用。
+模块03额外生成 `libdetection_core.a` 静态库，供 GUI_detection 的 pybind11 绑定使用。
+模块04额外生成 `libsignal_processing_core.a` 静态库，供 GUI_signal_processing 的 pybind11 绑定使用。
 
 ### 单独编译某个模块
 
@@ -380,43 +384,52 @@ echo "=== 完成! 输出文件在 output/ 目录 ==="
 
 ## 第六步：GUI 应用（可选）
 
-项目提供两个独立的 PySide6 GUI 应用，分别封装模块01（波形生成）和模块02（干扰生成）。
+项目提供四个独立的 PySide6 GUI 应用，分别封装模块01~04。
 
-### GUI_waveform（波形生成）
+### 各 GUI 概览
 
-```bash
-cd GUI_waveform
+| GUI | 封装模块 | C++ 绑定 | 静态库依赖 |
+|-----|---------|---------|-----------|
+| GUI_waveform | 模块01 (5种波形) | `waveform_bind.cpp` → `waveform_cpp.pyd` | `libwaveform_core.a` (Eigen) |
+| GUI_jamming | 模块02 (10种干扰) | `jamming_bind.cpp` → `jamming_cpp.pyd` | `libjamming_core.a` (Eigen + FFTW3) |
+| GUI_detection | 模块03 (5种干扰类型) | `detection_bind.cpp` → `detection_cpp.pyd` | `libdetection_core.a` (Eigen + FFTW3) |
+| GUI_signal_processing | 模块04+01 (6种处理) | `signal_processing_bind.cpp` → `signal_processing_cpp.pyd` | `libsignal_processing_core.a` + `libwaveform_core.a` (Eigen + FFTW3) |
 
-# 安装 Python 依赖
-pip install -r requirements.txt
+四个 GUI 通过 pybind11 在内存中传递 numpy 数组，不经过文件 I/O。
 
-# 直接运行（开发模式）
-python app.py
-
-# Windows 一键构建（编译 pybind11 + PyInstaller 打包）
-scripts\build.bat
-
-# macOS 一键构建
-bash scripts/build.sh
-```
-
-### GUI_jamming（干扰生成）
+### 运行方式（开发模式）
 
 ```bash
-cd GUI_jamming
-
-# 安装 Python 依赖
-pip install -r requirements.txt
-
-# 直接运行（开发模式）
-python app.py
-
-# Windows 一键构建（编译 pybind11 + PyInstaller 打包）
-scripts\build.bat
-
-# macOS 一键构建
-bash scripts/build.sh
+cd GUI_waveform && pip install -r requirements.txt && python app.py
+cd GUI_jamming && pip install -r requirements.txt && python app.py
+cd GUI_detection && pip install -r requirements.txt && python app.py
+cd GUI_signal_processing && pip install -r requirements.txt && python app.py
 ```
+
+### Windows 一键打包为 exe
+
+```bash
+# 先构建 4 个 C++ 静态库
+cd 01_waveform_generation && mkdir -p build && cd build && cmake .. && cmake --build .
+cd ../../02_jamming_generation && mkdir -p build && cd build && cmake .. && cmake --build .
+cd ../../03_jamming_detection_suppression && mkdir -p build && cd build && cmake .. && cmake --build .
+cd ../../04_signal_processing && mkdir -p build && cd build && cmake .. && cmake --build .
+
+# 一键打包全部 4 个 GUI
+cd ../..
+build_all.bat
+```
+
+各 GUI 也可单独打包：
+
+```bash
+cd GUI_waveform && scripts\build.bat
+cd GUI_jamming && scripts\build.bat
+cd GUI_detection && scripts\build.bat
+cd GUI_signal_processing && scripts\build.bat
+```
+
+打包产物位于各 `dist/` 目录，整个文件夹（含 `_internal/`）可拷贝到任意 Windows 机器运行。
 
 ### GUI 构建前置条件
 
@@ -424,16 +437,16 @@ bash scripts/build.sh
 - pybind11（编译时需要）
 - PySide6, pyqtgraph, numpy, scipy（运行时）
 - PyInstaller（打包时，可选）
-- 对应模块的 C++ 静态库已构建完成（`libwaveform_core.a` 或 `libjamming_core.a`）
+- 对应模块的 C++ 静态库已构建完成
 
-### GUI 技术架构
+### GUI 可视化功能
 
-| GUI | 封装模块 | C++ 绑定 | 静态库依赖 |
-|-----|---------|---------|-----------|
-| GUI_waveform | 模块01 (5种波形) | `waveform_bind.cpp` → `waveform_cpp.pyd` | `libwaveform_core.a` (Eigen) |
-| GUI_jamming | 模块02 (10种干扰) | `jamming_bind.cpp` → `jamming_cpp.pyd` | `libjamming_core.a` (Eigen + FFTW3) |
-
-两个 GUI 通过 pybind11 在内存中传递 numpy 数组，不经过文件 I/O。
+| GUI | 图表标签页 | 特色功能 |
+|-----|-----------|---------|
+| GUI_waveform | 时域/频谱/信号矩阵/相位谱/载频序列/随机相位/STFT/**距离-多普勒** | RD 物理坐标 (m/m/s) |
+| GUI_jamming | 时域/频域/信号矩阵/**距离-多普勒**/STFT/脉冲对比/拖引轨迹 | RD 物理坐标 (m/m/s) |
+| GUI_detection | 时域/频域/信号矩阵/距离像/目标分离/**距离-多普勒**/包络 | 载波去除 + RD 图 (Ka波段) |
+| GUI_signal_processing | 脉冲特性/频域/信号矩阵/**距离-多普勒**/解耦结果/**STFT时频**/结果汇总 | passband 载波去除 STFT |
 
 详细设计文档：
 - [波形生成 GUI 设计](WAVEFORM_GUI_DESIGN.md)

@@ -13,7 +13,7 @@
 
 ```
 04_signal_processing/
-├── CMakeLists.txt              # 构建配置，输出可执行文件 signal_proc + 测试目标 test_case6
+├── CMakeLists.txt              # 构建配置，输出可执行文件 signal_proc + libsignal_processing_core.a 静态库
 ├── include/
 │   ├── parameters.h            # 系统参数(与01模块完全一致的副本)
 │   ├── Module0.h               # 工具函数库(FFT/IFFT/滤波/窗函数/文件IO)
@@ -23,12 +23,16 @@
 │   ├── JamTarDivi.h            # Tsallis交叉熵干扰-目标信号解耦(q=1.0, 适配3×过采样)
 │   ├── TfrStft.h               # 短时傅里叶变换(STFT)统一实现
 │   ├── EchoGenerator4.h        # Case6兜底信号生成器(模块02数据不可用时)
-│   └── JammingSimulator4.h     # 兜底干扰模拟器(ISDJ/ISRJ/ISCJ/NBJ/RDJ)
-└── src/
-    ├── main.cpp                # 入口：加载含干扰数据 → shibie() → chuli()
-    ├── Module2.5.cpp           # shibie() 实现：自动选择脉冲并识别干扰类型
-    ├── Module3.cpp             # chuli() + load_case_data() 实现：逐Case加载匹配数据
-    └── test_case6.cpp          # Case6独立ISR测试(已从主构建排除)
+│   ├── JammingSimulator4.h     # 兜底干扰模拟器(ISDJ/ISRJ/ISCJ/NBJ/RDJ)
+│   └── signal_processing_core.h # 共享库 API: run_recognition/run_processing_rd/run_processing_decouple
+├── src/
+│   ├── main.cpp                # 入口：加载含干扰数据 → shibie() → chuli()
+│   ├── Module2.5.cpp           # shibie() 实现：自动选择脉冲并识别干扰类型
+│   ├── Module3.cpp             # chuli() + load_case_data() 实现：逐Case加载匹配数据
+│   ├── test_case6.cpp          # Case6独立ISR测试(已从主构建排除)
+│   └── signal_processing_core.cpp # 共享库：三个入口函数封装(供 GUI 使用)
+└── bindings/
+    └── signal_processing_bind.cpp # pybind11 绑定（薄适配层，供 GUI_signal_processing 使用）
 ```
 
 ## 运行流程
