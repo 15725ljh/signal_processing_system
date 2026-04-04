@@ -29,6 +29,7 @@
     ],
     "defaultMode": "auto"
   },
+  "model": "opus[1m]",
   "defaultShell": "bash",
   "language": "chinese",
   "alwaysThinkingEnabled": true,
