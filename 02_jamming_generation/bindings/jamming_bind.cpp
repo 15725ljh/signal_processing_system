@@ -84,28 +84,37 @@ static py::dict run_jamming(int mode, const py::dict& system_cfg, const py::dict
     p.A_RJ  = get_d(system_cfg, "A_RJ",  10.0);
     p.z_R0  = get_d(system_cfg, "z_R0",  2000.0);
     p.nan1  = get_i(system_cfg, "nan1",  64);
+    p.range_walk_factor = get_d(system_cfg, "range_walk_factor", 4000.0);
 
     // Case 1 (RDJ)
-    p.case1_jj    = get_i(jamming_cfg, "case1_rdj.jj",      1);
-    p.case1_Rj    = get_d(jamming_cfg, "case1_rdj.Rj",      100.0);
-    p.case1_amp_j = get_d(jamming_cfg, "case1_rdj.amp_j",   10.0);
+    p.case1_jj         = get_i(jamming_cfg, "case1_rdj.jj",         1);
+    p.case1_Rj         = get_d(jamming_cfg, "case1_rdj.Rj",         100.0);
+    p.case1_amp_j      = get_d(jamming_cfg, "case1_rdj.amp_j",      10.0);
+    p.case1_amp_target = get_d(jamming_cfg, "case1_rdj.amp_target", 1.0);
+    p.case1_awgn_snr   = get_d(jamming_cfg, "case1_rdj.awgn_snr",   10.0);
 
     // Case 2 (VDJ)
-    p.case2_Vj    = get_d(jamming_cfg, "case2_vdj.Vj",      1e5);
-    p.case2_jj    = get_i(jamming_cfg, "case2_vdj.jj",      1);
-    p.case2_Rj    = get_d(jamming_cfg, "case2_vdj.Rj",      10.0);
-    p.case2_amp_j = get_d(jamming_cfg, "case2_vdj.amp_j",   10.0);
+    p.case2_Vj         = get_d(jamming_cfg, "case2_vdj.Vj",         1e5);
+    p.case2_jj         = get_i(jamming_cfg, "case2_vdj.jj",         1);
+    p.case2_Rj         = get_d(jamming_cfg, "case2_vdj.Rj",         10.0);
+    p.case2_amp_j      = get_d(jamming_cfg, "case2_vdj.amp_j",      10.0);
+    p.case2_amp_target = get_d(jamming_cfg, "case2_vdj.amp_target", 1.0);
+    p.case2_awgn_snr   = get_d(jamming_cfg, "case2_vdj.awgn_snr",   10.0);
 
     // Case 3 (ISRJ)
-    p.case3_Ts_ISRJ = get_d(jamming_cfg, "case3_isrj.Ts_ISRJ", 4e-6);
-    p.case3_T_ISRJ  = get_d(jamming_cfg, "case3_isrj.T_ISRJ",  0.0);
-    p.case3_Rj      = get_d(jamming_cfg, "case3_isrj.Rj",      10.0);
-    p.case3_amp_j   = get_d(jamming_cfg, "case3_isrj.amp_j",   10.0);
+    p.case3_Ts_ISRJ    = get_d(jamming_cfg, "case3_isrj.Ts_ISRJ",   4e-6);
+    p.case3_T_ISRJ     = get_d(jamming_cfg, "case3_isrj.T_ISRJ",    0.0);
+    p.case3_Rj         = get_d(jamming_cfg, "case3_isrj.Rj",        10.0);
+    p.case3_amp_j      = get_d(jamming_cfg, "case3_isrj.amp_j",     10.0);
+    p.case3_amp_target = get_d(jamming_cfg, "case3_isrj.amp_target", 1.0);
+    p.case3_awgn_snr   = get_d(jamming_cfg, "case3_isrj.awgn_snr",   10.0);
 
     // Case 4 (NNJ)
     p.case4_power_dBW     = get_d(jamming_cfg, "case4_nnj.power_dBW",     20.0);
     p.case4_butter_order  = get_i(jamming_cfg, "case4_nnj.butter_order",  8);
     p.case4_butter_cutoff = get_d(jamming_cfg, "case4_nnj.butter_cutoff", 0.3);
+    p.case4_amp_target    = get_d(jamming_cfg, "case4_nnj.amp_target",    1.0);
+    p.case4_awgn_snr      = get_d(jamming_cfg, "case4_nnj.awgn_snr",      10.0);
 
     // Case 5 (RGPO)
     p.case5_Vj          = get_d(jamming_cfg, "case5_rgpo.Vj",          340.0);
@@ -120,12 +129,14 @@ static py::dict run_jamming(int mode, const py::dict& system_cfg, const py::dict
     p.case6_amp_jammer  = get_d(jamming_cfg, "case6_vgpo.amp_jammer",  1.4);
     p.case6_drag_stages = get_i(jamming_cfg, "case6_vgpo.drag_stages", 4);
     p.case6_awgn_snr    = get_d(jamming_cfg, "case6_vgpo.awgn_snr",    10.0);
+    p.case6_velocity_drag_factor = get_d(jamming_cfg, "case6_vgpo.velocity_drag_factor", 40000.0);
 
     // Case 7 (DRFTJ)
     p.case7_JSR        = get_d(jamming_cfg, "case7_drftj.JSR",        0.0);
     p.case7_amp_target = get_d(jamming_cfg, "case7_drftj.amp_target", 1.0);
     p.case7_num_jam    = get_i(jamming_cfg, "case7_drftj.num_jam",    50);
     p.case7_detaR      = get_d(jamming_cfg, "case7_drftj.detaR",      50.0);
+    p.case7_forward_replicas = get_i(jamming_cfg, "case7_drftj.forward_replicas", 3);
     p.case7_awgn_snr   = get_d(jamming_cfg, "case7_drftj.awgn_snr",   10.0);
 
     // Case 8 (IPLESRJ)

@@ -140,4 +140,19 @@ class ConfigManager:
 
     @staticmethod
     def _remove_trailing_commas(text: str) -> str:
-        return re.sub(r",\s*([}\]])", r"\1", text)
+        # 逐行处理: 仅删除紧接 } 或 ] 之前的尾随逗号
+        lines = text.split('\n')
+        cleaned = []
+        for i, line in enumerate(lines):
+            stripped = line.rstrip()
+            if stripped.endswith(','):
+                # 检查下一非空行是否以 } 或 ] 开头
+                for j in range(i + 1, len(lines)):
+                    next_stripped = lines[j].strip()
+                    if not next_stripped:
+                        continue
+                    if next_stripped.startswith('}') or next_stripped.startswith(']'):
+                        stripped = stripped[:-1]
+                    break
+            cleaned.append(stripped)
+        return '\n'.join(cleaned)

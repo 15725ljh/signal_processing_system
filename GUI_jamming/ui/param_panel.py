@@ -92,7 +92,7 @@ class DerivedLabel(QLabel):
 class ParamPanel(QWidget):
 
     paramsChanged = Signal()
-    runRequested = Signal(int)      # 单选模式, 只传一个 mode
+    runRequested = Signal(list)     # 多选模式, 传 mode 列表
     stopRequested = Signal()
     clearRequested = Signal()
     restoreDefaultsRequested = Signal()
@@ -108,54 +108,64 @@ class ParamPanel(QWidget):
         ("干扰增益 A_RJ (dB)", "system.A_RJ", 10.0, False, "", 1),
         ("雷达初始高度 z_R0 (m)", "system.z_R0", 2000.0, False, "", 100),
         ("方位向脉冲数 nan1", "system.nan1", 64, True, "", 1),
+        ("距离走动放大因子", "system.range_walk_factor", 4000.0, False, "", 1000),
     ]
 
-    # 每种 Case 的专属参数: (label, key, default, is_int, suffix, step)
-    _CASE_PARAMS = {
-        1: [  # RDJ
+    _JAMMING_PARAMS = [
+        ("── Case1: 距离假目标 (RDJ) ──", [
             ("干扰脉冲延迟数 jj", "jamming.case1_rdj.jj", 1, True, "", 1),
             ("干扰目标距离 Rj (m)", "jamming.case1_rdj.Rj", 100.0, False, "", 10),
             ("干扰幅度增益 amp_j", "jamming.case1_rdj.amp_j", 10.0, False, "", 1),
-        ],
-        2: [  # VDJ
+            ("目标幅度", "jamming.case1_rdj.amp_target", 1.0, False, "", 0.1),
+            ("AWGN 信噪比 (dB)", "jamming.case1_rdj.awgn_snr", 10.0, False, "", 1),
+        ]),
+        ("── Case2: 速度假目标 (VDJ) ──", [
             ("假目标速度 Vj (m/s)", "jamming.case2_vdj.Vj", 1e5, False, "", 1e3),
             ("干扰延迟脉冲数 jj", "jamming.case2_vdj.jj", 1, True, "", 1),
             ("假目标距离 Rj (m)", "jamming.case2_vdj.Rj", 10.0, False, "", 1),
             ("干扰幅度增益 amp_j", "jamming.case2_vdj.amp_j", 10.0, False, "", 1),
-        ],
-        3: [  # ISRJ
+            ("目标幅度", "jamming.case2_vdj.amp_target", 1.0, False, "", 0.1),
+            ("AWGN 信噪比 (dB)", "jamming.case2_vdj.awgn_snr", 10.0, False, "", 1),
+        ]),
+        ("── Case3: 间歇采样转发 (ISRJ) ──", [
             ("采样周期 Ts_ISRJ (s)", "jamming.case3_isrj.Ts_ISRJ", 4e-6, False, "", 1e-6),
             ("采样脉宽 T_ISRJ (s)", "jamming.case3_isrj.T_ISRJ", 0.0, False, "", 1e-6),
             ("干扰目标距离 Rj (m)", "jamming.case3_isrj.Rj", 10.0, False, "", 1),
             ("干扰幅度增益 amp_j", "jamming.case3_isrj.amp_j", 10.0, False, "", 1),
-        ],
-        4: [  # NNJ
+            ("目标幅度", "jamming.case3_isrj.amp_target", 1.0, False, "", 0.1),
+            ("AWGN 信噪比 (dB)", "jamming.case3_isrj.awgn_snr", 10.0, False, "", 1),
+        ]),
+        ("── Case4: 窄带噪声 (NNJ) ──", [
             ("噪声功率 (dBW)", "jamming.case4_nnj.power_dBW", 20.0, False, "", 1),
             ("低通滤波器阶数", "jamming.case4_nnj.butter_order", 8, True, "", 1),
             ("归一化截止频率", "jamming.case4_nnj.butter_cutoff", 0.3, False, "", 0.05),
-        ],
-        5: [  # RGPO
+            ("目标幅度", "jamming.case4_nnj.amp_target", 1.0, False, "", 0.1),
+            ("AWGN 信噪比 (dB)", "jamming.case4_nnj.awgn_snr", 10.0, False, "", 1),
+        ]),
+        ("── Case5: 距离波门拖引 (RGPO) ──", [
             ("假目标拖引速度 Vj (m/s)", "jamming.case5_rgpo.Vj", 340.0, False, "", 10),
             ("目标幅度 amp_target", "jamming.case5_rgpo.amp_target", 1.0, False, "", 0.1),
             ("干扰幅度 amp_jammer", "jamming.case5_rgpo.amp_jammer", 1.4, False, "", 0.1),
             ("拖引阶段次数", "jamming.case5_rgpo.drag_stages", 4, True, "", 1),
             ("AWGN 信噪比 (dB)", "jamming.case5_rgpo.awgn_snr", 10.0, False, "", 1),
-        ],
-        6: [  # VGPO
+        ]),
+        ("── Case6: 速度波门拖引 (VGPO) ──", [
             ("假目标速度 Vj (m/s)", "jamming.case6_vgpo.Vj", 1e4, False, "", 1e3),
             ("目标幅度 amp_target", "jamming.case6_vgpo.amp_target", 1.0, False, "", 0.1),
             ("干扰幅度 amp_jammer", "jamming.case6_vgpo.amp_jammer", 1.4, False, "", 0.1),
             ("拖引阶段次数", "jamming.case6_vgpo.drag_stages", 4, True, "", 1),
+            ("速度拖引放大因子", "jamming.case6_vgpo.velocity_drag_factor", 40000.0, False, "", 1000),
             ("AWGN 信噪比 (dB)", "jamming.case6_vgpo.awgn_snr", 10.0, False, "", 1),
-        ],
-        7: [  # DRFTJ
+        ]),
+        ("── Case7: 密集假目标 (DRFTJ) ──", [
             ("干信比 JSR (dB)", "jamming.case7_drftj.JSR", 0.0, False, "", 1),
             ("目标幅度 amp_target", "jamming.case7_drftj.amp_target", 1.0, False, "", 0.1),
             ("转发次数 num_jam", "jamming.case7_drftj.num_jam", 50, True, "", 1),
             ("距离增量 detaR (m)", "jamming.case7_drftj.detaR", 50.0, False, "", 10),
+            ("前向转发次数", "jamming.case7_drftj.forward_replicas", 3, True, "", 1),
             ("AWGN 信噪比 (dB)", "jamming.case7_drftj.awgn_snr", 10.0, False, "", 1),
-        ],
-        8: [  # IPLESRJ
+        ]),
+        ("── Case8: 脉内前沿切片 (IPLESRJ) ──", [
             ("干扰功率增益 A_RJ (dB)", "jamming.case8_iplesrj.A_RJ", 30.0, False, "", 1),
             ("目标幅度 amp_target", "jamming.case8_iplesrj.amp_target", 1.0, False, "", 0.1),
             ("雷达-目标距离 R0_new (m)", "jamming.case8_iplesrj.R0_new", 608.0, False, "", 10),
@@ -163,44 +173,30 @@ class ParamPanel(QWidget):
             ("干扰间隔 Tp/ratio", "jamming.case8_iplesrj.T_ISRJ_ratio", 16, True, "", 1),
             ("提前发射时间 R_ahead (s)", "jamming.case8_iplesrj.R_ahead", 0.0, False, "", 1e-6),
             ("AWGN 信噪比 (dB)", "jamming.case8_iplesrj.awgn_snr", 10.0, False, "", 1),
-        ],
-        9: [  # SMSP
+        ]),
+        ("── Case9: 频谱弥散 (SMSP) ──", [
             ("频谱切片次数", "jamming.case9_smsp.num_slices", 4, True, "", 1),
             ("干信比 JSR (dB)", "jamming.case9_smsp.JSR", 15.0, False, "", 1),
             ("目标幅度 amp_target", "jamming.case9_smsp.amp_target", 1.0, False, "", 0.1),
             ("干扰幅度额外系数", "jamming.case9_smsp.amp_extra", 1.4, False, "", 0.1),
             ("目标初始距离 R0 (m)", "jamming.case9_smsp.R0", 10000.0, False, "", 1000),
             ("AWGN 信噪比 (dB)", "jamming.case9_smsp.awgn_snr", 10.0, False, "", 1),
-        ],
-        10: [  # COMB
+        ]),
+        ("── Case10: 梳状谱 (COMB) ──", [
             ("频谱线数量", "jamming.case10_comb.num_tones", 7, True, "", 1),
             ("干信比 JSR (dB)", "jamming.case10_comb.JSR", 0.0, False, "", 1),
             ("目标幅度 amp_target", "jamming.case10_comb.amp_target", 1.0, False, "", 0.1),
             ("频率间隔 deltaf (Hz)", "jamming.case10_comb.deltaf", 1e6, False, "", 1e5),
             ("目标初始距离 R0 (m)", "jamming.case10_comb.R0", 10000.0, False, "", 1000),
             ("AWGN 信噪比 (dB)", "jamming.case10_comb.awgn_snr", 10.0, False, "", 1),
-        ],
-    }
-
-    _CASE_NAMES = {
-        1: "Case1: 距离假目标 (RDJ)",
-        2: "Case2: 速度假目标 (VDJ)",
-        3: "Case3: 间歇采样转发 (ISRJ)",
-        4: "Case4: 窄带噪声 (NNJ)",
-        5: "Case5: 距离波门拖引 (RGPO)",
-        6: "Case6: 速度波门拖引 (VGPO)",
-        7: "Case7: 密集假目标 (DRFTJ)",
-        8: "Case8: 脉内前沿切片 (IPLESRJ)",
-        9: "Case9: 频谱弥散 (SMSP)",
-        10: "Case10: 梳状谱 (COMB)",
-    }
+        ]),
+    ]
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self._param_edits = {}
-        self._locked = True
-        self._current_mode = 1
-        self._case_param_widgets = {}  # mode -> list of ParamEdit
+        self._locked = False
+        self._case_checks = {}         # mode -> QCheckBox
         self._setup_ui()
         self._apply_lock_state()
 
@@ -222,7 +218,7 @@ class ParamPanel(QWidget):
         layout.addWidget(self._create_action_buttons())
         layout.addWidget(self._create_lock_button())
         layout.addWidget(self._create_system_params_group())
-        layout.addWidget(self._create_case_params_group())
+        layout.addWidget(self._create_jamming_params_group())
         layout.addWidget(self._create_derived_info_group())
         layout.addStretch()
 
@@ -251,47 +247,50 @@ class ParamPanel(QWidget):
     def _apply_lock_state(self):
         for edit in self._param_edits.values():
             edit._spin.setEnabled(not self._locked)
-        for btn in self._case_buttons.values():
-            btn.setEnabled(not self._locked)
+        for cb in self._case_checks.values():
+            cb.setEnabled(not self._locked)
 
     def _create_case_select_group(self):
         group = QGroupBox("干扰模式选择")
         layout = QVBoxLayout(group)
 
-        self._case_buttons = {}
-        self._case_button_group = None
+        self._case_checks = {}
+        names = {
+            1: "Case1: 距离假目标 (RDJ)",
+            2: "Case2: 速度假目标 (VDJ)",
+            3: "Case3: 间歇采样转发 (ISRJ)",
+            4: "Case4: 窄带噪声 (NNJ)",
+            5: "Case5: 距离波门拖引 (RGPO)",
+            6: "Case6: 速度波门拖引 (VGPO)",
+            7: "Case7: 密集假目标 (DRFTJ)",
+            8: "Case8: 脉内前沿切片 (IPLESRJ)",
+            9: "Case9: 频谱弥散 (SMSP)",
+            10: "Case10: 梳状谱 (COMB)",
+        }
 
-        # 使用 QButtonGroup 实现单选
-        from PySide6.QtWidgets import QButtonGroup
-        self._case_button_group = QButtonGroup(self)
-        self._case_button_group.setExclusive(True)
+        for mode, name in names.items():
+            cb = QCheckBox(name)
+            cb.setChecked(True)
+            cb.setProperty("case_mode", mode)
+            self._case_checks[mode] = cb
+            layout.addWidget(cb)
 
-        for mode in range(1, 11):
-            btn = QPushButton(self._CASE_NAMES[mode])
-            btn.setCheckable(True)
-            btn.setProperty("case_mode", mode)
-            self._case_buttons[mode] = btn
-            self._case_button_group.addButton(btn, mode)
-            btn.clicked.connect(lambda checked, m=mode: self._on_case_selected(m))
-            layout.addWidget(btn)
-
-        # 默认选中 Case1
-        self._case_buttons[1].setChecked(True)
+        btn_row = QHBoxLayout()
+        btn_row.setSpacing(10)
+        select_all = QPushButton("✓ 全选")
+        select_all.setObjectName("selectAllBtn")
+        select_all.setMinimumWidth(64)
+        select_all.clicked.connect(lambda: [c.setChecked(True) for c in self._case_checks.values()])
+        deselect_all = QPushButton("✕ 全不选")
+        deselect_all.setObjectName("deselectAllBtn")
+        deselect_all.setMinimumWidth(64)
+        deselect_all.clicked.connect(lambda: [c.setChecked(False) for c in self._case_checks.values()])
+        btn_row.addWidget(select_all)
+        btn_row.addWidget(deselect_all)
+        btn_row.addStretch()
+        layout.addLayout(btn_row)
 
         return group
-
-    def _on_case_selected(self, mode):
-        self._current_mode = mode
-        self._show_case_params(mode)
-
-    def _show_case_params(self, mode):
-        # 隐藏所有 Case 参数面板, 显示当前选中的
-        for m, widgets in self._case_param_widgets.items():
-            for w in widgets:
-                w.setVisible(m == mode)
-        if self._case_header_labels:
-            for m, lbl in self._case_header_labels.items():
-                lbl.setVisible(m == mode)
 
     def _create_system_params_group(self):
         group = QGroupBox("系统基本参数")
@@ -303,29 +302,19 @@ class ParamPanel(QWidget):
             layout.addWidget(edit)
         return group
 
-    def _create_case_params_group(self):
-        self._case_header_labels = {}
-        group = QGroupBox("Case 专属参数")
+    def _create_jamming_params_group(self):
+        group = QGroupBox("干扰专属参数")
         layout = QVBoxLayout(group)
-
-        for mode in range(1, 11):
-            header = QLabel(self._CASE_NAMES[mode])
-            header.setStyleSheet("color: #6c7086; font-size: 11px; font-weight: bold;")
-            header.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            header.setVisible(mode == 1)
-            self._case_header_labels[mode] = header
-            layout.addWidget(header)
-
-            widgets = []
-            for label, key, default, is_int, suffix, step in self._CASE_PARAMS[mode]:
+        for sep_text, params in self._JAMMING_PARAMS:
+            sep = QLabel(sep_text)
+            sep.setStyleSheet("color: #6c7086; font-size: 11px;")
+            sep.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            layout.addWidget(sep)
+            for label, key, default, is_int, suffix, step in params:
                 edit = ParamEdit(label, key, default, is_int, suffix, step)
                 edit.valueChanged.connect(self._on_param_changed)
                 self._param_edits[key] = edit
-                edit.setVisible(mode == 1)
-                widgets.append(edit)
                 layout.addWidget(edit)
-            self._case_param_widgets[mode] = widgets
-
         return group
 
     def _create_derived_info_group(self):
@@ -419,7 +408,10 @@ class ParamPanel(QWidget):
         self.restoreDefaultsRequested.emit()
 
     def _on_run(self):
-        self.runRequested.emit(self._current_mode)
+        modes = [m for m, cb in self._case_checks.items() if cb.isChecked()]
+        if not modes:
+            return
+        self.runRequested.emit(modes)
 
     def set_running(self, running):
         self._run_btn.setEnabled(not running)
@@ -428,8 +420,8 @@ class ParamPanel(QWidget):
         if running:
             for edit in self._param_edits.values():
                 edit._spin.setEnabled(False)
-            for btn in self._case_buttons.values():
-                btn.setEnabled(False)
+            for cb in self._case_checks.values():
+                cb.setEnabled(False)
         else:
             self._apply_lock_state()
 
@@ -444,5 +436,5 @@ class ParamPanel(QWidget):
             if key in self._param_edits:
                 self._param_edits[key].set_value(val)
 
-    def get_current_mode(self):
-        return self._current_mode
+    def get_selected_modes(self):
+        return [m for m, cb in self._case_checks.items() if cb.isChecked()]

@@ -1,6 +1,8 @@
 venv/
 build/
+!build/.gitkeep
 dist/
+!dist/.gitkeep
 lib/
 *.so
 *.pyd

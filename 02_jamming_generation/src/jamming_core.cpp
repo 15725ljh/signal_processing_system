@@ -221,6 +221,11 @@ static void ganrao_case1(const JammingParams& p, const LocalParams& lp,
     result.log += oss.str() + "\n";
 
     MatrixXcd target_echo = generate_target_echo(p, lp);
+    // 应用目标幅度和接收机噪声
+    for (int k = 0; k < _nan1; ++k) {
+        target_echo.col(k) *= p.case1_amp_target;
+        target_echo.col(k) += awgn(target_echo.col(k), p.case1_awgn_snr);
+    }
     MatrixXcd RDJ_Sig = MatrixXcd::Zero(_nrn, _nan1);
     result.echo_target = MatrixXcd::Zero(_nrn, _nan1);
 
@@ -235,7 +240,7 @@ static void ganrao_case1(const JammingParams& p, const LocalParams& lp,
         RDJ_Sig.col(k) += sig;
         result.echo_target.col(k) = target_echo.col(k) + amp_j * RDJ_Sig.col(k);
     }
-    result.jam_signal    = RDJ_Sig;
+    result.jam_signal    = amp_j * RDJ_Sig;
     result.target_signal = target_echo;
 }
 
@@ -259,6 +264,11 @@ static void ganrao_case2(const JammingParams& p, const LocalParams& lp,
     result.log += oss.str() + "\n";
 
     MatrixXcd target_echo = generate_target_echo(p, lp);
+    // 应用目标幅度和接收机噪声
+    for (int k = 0; k < _nan1; ++k) {
+        target_echo.col(k) *= p.case2_amp_target;
+        target_echo.col(k) += awgn(target_echo.col(k), p.case2_awgn_snr);
+    }
     MatrixXcd VDJ_Sig = MatrixXcd::Zero(_nrn, _nan1);
     result.echo_target = MatrixXcd::Zero(_nrn, _nan1);
 
@@ -276,7 +286,7 @@ static void ganrao_case2(const JammingParams& p, const LocalParams& lp,
         VDJ_Sig.col(k) += sig;
         result.echo_target.col(k) = target_echo.col(k) + p.case2_amp_j * VDJ_Sig.col(k);
     }
-    result.jam_signal    = VDJ_Sig;
+    result.jam_signal    = p.case2_amp_j * VDJ_Sig;
     result.target_signal = target_echo;
 }
 
@@ -306,6 +316,11 @@ static void ganrao_case3(const JammingParams& p, const LocalParams& lp,
     result.log += oss.str() + "\n";
 
     MatrixXcd target_echo = generate_target_echo(p, lp);
+    // 应用目标幅度和接收机噪声
+    for (int k = 0; k < _nan1; ++k) {
+        target_echo.col(k) *= p.case3_amp_target;
+        target_echo.col(k) += awgn(target_echo.col(k), p.case3_awgn_snr);
+    }
     MatrixXcd ISRJ_Sig = MatrixXcd::Zero(_nrn, _nan1);
 
     for (int m = 0; m < _nan1; ++m) {
@@ -350,7 +365,7 @@ static void ganrao_case3(const JammingParams& p, const LocalParams& lp,
     }
 
     result.echo_target  = amp_j * ISRJ_Sig + target_echo;
-    result.jam_signal    = ISRJ_Sig;
+    result.jam_signal    = amp_j * ISRJ_Sig;
     result.target_signal = target_echo;
 }
 
@@ -389,8 +404,6 @@ static void ganrao_case4(const JammingParams& p, const LocalParams& lp,
             z(i) = complex<double>(normal_dist(generator) * sigma,
                                    normal_dist(generator) * sigma) * carrier(i);
 
-        fft(z);  // FFT 分析 (结果未直接使用, 与原始代码保持一致)
-
         VectorXcd lvbo_z = filter(b_filt, a_filt, z);
         VectorXcd fft_lvbo_z = fft(lvbo_z);
 
@@ -411,10 +424,27 @@ static void ganrao_case4(const JammingParams& p, const LocalParams& lp,
     for (int m = 0; m < _nan1; ++m)
         NNJ.col(m) = ifft(fft_lvbo_z1.col(m));
 
-    // Case4: Radar_Sig = 0, echo_target = NNJ + 0 = NNJ
-    result.echo_target  = NNJ;
+    // 独立生成目标回波 (与 Case5~10 一致)
+    double phi0 = acos(p.z_R0 / p.Rs);
+    double x0 = p.Rs * sin(phi0) * sin(0.0);
+    double y0 = p.Rs * sin(phi0) * cos(0.0);
+    double R0 = Vector3d(x0, y0, 0.0).norm();
+
+    MatrixXcd target_Sig = MatrixXcd::Zero(_nrn, _nan1);
+    for (int k = 0; k < _nan1; ++k) {
+        double Rt = R0 - p.Vr * k / p.prf * p.range_walk_factor;
+        VectorXd td = lp.tnrn.array() - 2 * Rt / c;
+        VectorXcd phase_t = (I_complex * PI * lp.gama_val * td.array().square()).exp()
+                          * precise_expj_2pi_scalar(-2.0 * Rt / lp.lambda_val);
+        Array<bool, -1, 1> wint = (td.array() >= -p.Tp / 2.0) && (td.array() <= p.Tp / 2.0);
+        VectorXcd reT = wint.cast<double>() * p.case4_amp_target * phase_t.array();
+        reT += awgn(reT, p.case4_awgn_snr);
+        target_Sig.col(k) = reT;
+    }
+
+    result.echo_target  = NNJ + target_Sig;
     result.jam_signal    = NNJ;
-    result.target_signal = MatrixXcd::Zero(_nrn, _nan1);
+    result.target_signal = target_Sig;
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -445,7 +475,7 @@ static void ganrao_case5(const JammingParams& p, const LocalParams& lp,
 
     for (int k = 0; k < _nan1; ++k) {
         // 目标回波
-        double Rt = R0 - p.Vr * k / p.prf * 4000.0;
+        double Rt = R0 - p.Vr * k / p.prf * p.range_walk_factor;
         VectorXd td = lp.tnrn.array() - 2 * Rt / c;
         VectorXcd phase_t = (I_complex * PI * lp.gama_val * td.array().square()).exp()
                           * precise_expj_2pi_scalar(-2.0 * Rt / lp.lambda_val);
@@ -457,16 +487,16 @@ static void ganrao_case5(const JammingParams& p, const LocalParams& lp,
         // 干扰参数 (分阶段)
         double Rj;
         if (k == 0)
-            Rj = R0 - p.Vr * k / p.prf * 4000.0 - p.case5_Vj * (k + 0.01) / p.prf * 4000.0;
+            Rj = R0 - p.Vr * k / p.prf * p.range_walk_factor - p.case5_Vj * (k + 0.01) / p.prf * p.range_walk_factor;
         else if (k < p.case5_drag_stages)
-            Rj = R0 - p.Vr * k / p.prf * 4000.0 - p.case5_Vj * k / p.prf * 4000.0;
+            Rj = R0 - p.Vr * k / p.prf * p.range_walk_factor - p.case5_Vj * k / p.prf * p.range_walk_factor;
         else
-            Rj = R0 - p.Vr * k / p.prf * 4000.0 + p.case5_Vj * (k - p.case5_drag_stages + 1) / p.prf * 4000.0;
+            Rj = R0 - p.Vr * k / p.prf * p.range_walk_factor + p.case5_Vj * (k - p.case5_drag_stages + 1) / p.prf * p.range_walk_factor;
 
         // 干扰信号
         VectorXd tdj = lp.tnrn.array() - 2 * Rj / c;
         VectorXcd phase_j = (I_complex * PI * lp.gama_val * tdj.array().square()).exp()
-                          * precise_expj_2pi_scalar(2.0 * Rj / lp.lambda_val);
+                          * precise_expj_2pi_scalar(-2.0 * Rj / lp.lambda_val);
         Array<bool, -1, 1> winj = (tdj.array() >= -p.Tp / 2.0) && (tdj.array() <= p.Tp / 2.0);
         VectorXcd reJ = winj.cast<double>() * p.case5_amp_jammer * phase_j.array();
         reJ += awgn(reJ, p.case5_awgn_snr);
@@ -508,7 +538,7 @@ static void ganrao_case6(const JammingParams& p, const LocalParams& lp,
     result.echo_target = MatrixXcd::Zero(_nrn, _nan1);
 
     for (int k = 0; k < _nan1; ++k) {
-        double Rt = R0 + p.Vr * (k + 1) / p.prf;
+        double Rt = R0 - p.Vr * (k + 1) / p.prf;
 
         // 目标回波 (含多普勒速度相位)
         VectorXd td = lp.tnrn.array() - 2 * Rt / c;
@@ -523,11 +553,11 @@ static void ganrao_case6(const JammingParams& p, const LocalParams& lp,
         // 干扰参数 (分阶段速度拖引)
         double fj;
         if (k == 0)
-            fj = 2 * p.case6_Vj / lp.lambda_val * (k + 0.001) / p.prf * 10000 * 4;
+            fj = 2 * p.case6_Vj / lp.lambda_val * (k + 0.001) / p.prf * p.case6_velocity_drag_factor;
         else if (k < p.case6_drag_stages)
-            fj = 2 * p.case6_Vj / lp.lambda_val * k / p.prf * 10000 * 4;
+            fj = 2 * p.case6_Vj / lp.lambda_val * k / p.prf * p.case6_velocity_drag_factor;
         else
-            fj = 2 * p.case6_Vj / lp.lambda_val * (k - p.case6_drag_stages + 1) / p.prf * 10000 * 4;
+            fj = 2 * p.case6_Vj / lp.lambda_val * (k - p.case6_drag_stages + 1) / p.prf * p.case6_velocity_drag_factor;
 
         // 干扰信号
         VectorXd tdj = lp.tnrn.array() - 2 * Rt / c;
@@ -574,33 +604,31 @@ static void ganrao_case7(const JammingParams& p, const LocalParams& lp,
     result.echo_target  = MatrixXcd::Zero(_nrn, _nan1);
 
     for (int k = 0; k < _nan1; ++k) {
-        for (int pointn = 0; pointn < 1; ++pointn) {
-            double Rt = R0 - p.Vr * k / p.prf;
-            VectorXd td = lp.tnrn.array() - 2 * Rt / c;
-            VectorXcd phase_t = (I_complex * PI * lp.gama_val * td.array().square()).exp()
-                              * precise_expj_2pi_scalar(-2.0 * Rt / lp.lambda_val);
-            Array<bool, -1, 1> wint = (td.array() >= 0) && (td.array() <= p.Tp);
-            VectorXcd reT = wint.cast<double>() * p.case7_amp_target * phase_t.array();
-            reT += awgn(reT, p.case7_awgn_snr);
-            Unj_Sig.col(k) += reT;
+        double Rt = R0 - p.Vr * k / p.prf;
+        VectorXd td = lp.tnrn.array() - 2 * Rt / c;
+        VectorXcd phase_t = (I_complex * PI * lp.gama_val * td.array().square()).exp()
+                          * precise_expj_2pi_scalar(-2.0 * Rt / lp.lambda_val);
+        Array<bool, -1, 1> wint = (td.array() >= 0) && (td.array() <= p.Tp);
+        VectorXcd reT = wint.cast<double>() * p.case7_amp_target * phase_t.array();
+        reT += awgn(reT, p.case7_awgn_snr);
+        Unj_Sig.col(k) += reT;
 
-            for (int jn = 0; jn < p.case7_num_jam; ++jn) {
-                double Rj;
-                if (jn < 3)
-                    Rj = R0 - p.Vr * k / p.prf + (jn + 1) * p.case7_detaR;
-                else
-                    Rj = R0 - p.Vr * k / p.prf - (jn - 2) * p.case7_detaR;
+        for (int jn = 0; jn < p.case7_num_jam; ++jn) {
+            double Rj;
+            if (jn < p.case7_forward_replicas)
+                Rj = R0 - p.Vr * k / p.prf + (jn + 1) * p.case7_detaR;
+            else
+                Rj = R0 - p.Vr * k / p.prf - (jn - 2) * p.case7_detaR;
 
-                VectorXd tdj = lp.tnrn.array() - 2 * Rj / c;
-                VectorXcd phase_j = (I_complex * PI * lp.gama_val * tdj.array().square()).exp()
-                                  * precise_expj_2pi_scalar(-2.0 * Rj / lp.lambda_val);
-                Array<bool, -1, 1> winj = (tdj.array() >= 0) && (tdj.array() <= p.Tp);
-                VectorXcd reJ = winj.cast<double>() * amp_jammer * phase_j.array();
-                reJ += awgn(reJ, p.case7_awgn_snr);
-                JMT_Sig.col(k) += reJ;
-            }
-            result.echo_target.col(k) = JMT_Sig.col(k) + Unj_Sig.col(k);
+            VectorXd tdj = lp.tnrn.array() - 2 * Rj / c;
+            VectorXcd phase_j = (I_complex * PI * lp.gama_val * tdj.array().square()).exp()
+                              * precise_expj_2pi_scalar(-2.0 * Rj / lp.lambda_val);
+            Array<bool, -1, 1> winj = (tdj.array() >= 0) && (tdj.array() <= p.Tp);
+            VectorXcd reJ = winj.cast<double>() * amp_jammer * phase_j.array();
+            reJ += awgn(reJ, p.case7_awgn_snr);
+            JMT_Sig.col(k) += reJ;
         }
+        result.echo_target.col(k) = JMT_Sig.col(k) + Unj_Sig.col(k);
     }
 
     result.jam_signal    = JMT_Sig;

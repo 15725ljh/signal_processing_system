@@ -239,7 +239,7 @@ class TimeDomainPlot(QWidget):
         self._sig_type = 2  # 0=target, 1=jam, 2=echo
         self._wave_type = 2  # 0=real, 1=imag, 2=envelope
         self._tnrn = None
-        self._col = None
+        self._cols = [None, None, None]  # target, jam, echo
 
         self._sig_group.idToggled.connect(self._on_sig_toggle)
         self._wave_group.idToggled.connect(self._on_wave_toggle)
@@ -271,9 +271,12 @@ class TimeDomainPlot(QWidget):
             self._apply_data()
 
     def _apply_data(self):
-        if self._tnrn is None or self._col is None:
+        if self._tnrn is None:
             return
-        self._update_curve(self._tnrn, self._col)
+        col = self._cols[self._sig_type]
+        if col is None:
+            return
+        self._update_curve(self._tnrn, col)
         self._pw.getViewBox().autoRange()
 
     def _update_curve(self, tnrn, col):
@@ -294,15 +297,16 @@ class TimeDomainPlot(QWidget):
         if tnrn is None or len(tnrn) == 0:
             return
         self._tnrn = tnrn
-        cols = [target_col, jam_col, echo_col]
-        self._col = cols[self._sig_type]
-        self._update_curve(tnrn, self._col)
+        self._cols = [target_col, jam_col, echo_col]
+        col = self._cols[self._sig_type]
+        if col is not None:
+            self._update_curve(tnrn, col)
         self._pw.getViewBox().autoRange()
 
     def clear_data(self):
         self._curve.setData([], [])
         self._tnrn = None
-        self._col = None
+        self._cols = [None, None, None]
 
 
 # ── 2. 频域频谱 ──
@@ -371,7 +375,7 @@ class FreqDomainPlot(QWidget):
 
         self._sig_type = 2
         self._fr = None
-        self._col = None
+        self._cols = [None, None, None]  # target, jam, echo
 
         self._sig_group.idToggled.connect(self._on_sig_toggle)
 
@@ -397,9 +401,12 @@ class FreqDomainPlot(QWidget):
             self._apply_data()
 
     def _apply_data(self):
-        if self._fr is None or self._col is None:
+        if self._fr is None:
             return
-        self._compute_spectrum(self._fr, self._col)
+        col = self._cols[self._sig_type]
+        if col is None:
+            return
+        self._compute_spectrum(self._fr, col)
 
     def _compute_spectrum(self, fr, col):
         spec = fftshift(fft(col))
@@ -414,14 +421,15 @@ class FreqDomainPlot(QWidget):
         if fr is None or len(fr) == 0:
             return
         self._fr = fr
-        cols = [target_col, jam_col, echo_col]
-        self._col = cols[self._sig_type]
-        self._compute_spectrum(fr, self._col)
+        self._cols = [target_col, jam_col, echo_col]
+        col = self._cols[self._sig_type]
+        if col is not None:
+            self._compute_spectrum(fr, col)
 
     def clear_data(self):
         self._curve.setData([], [])
         self._fr = None
-        self._col = None
+        self._cols = [None, None, None]
 
 
 # ── 3. 信号矩阵热力图 ──
@@ -611,10 +619,27 @@ class RangeDopplerPlot(QWidget):
         _set_label(self._plot, "left", "距离单元")
 
         self._img = pg.ImageItem()
-        self._img.setColorMap(pg.colormap.get("viridis"))
+        # jet 彩虹色标: 蓝(低)→青→绿→黄→红(高), 雷达 RD 图标配
+        jet_colors = [
+            (0.0,  (0, 0, 143)),
+            (0.12, (0, 0, 255)),
+            (0.25, (0, 127, 255)),
+            (0.37, (0, 255, 255)),
+            (0.5,  (0, 255, 0)),
+            (0.62, (255, 255, 0)),
+            (0.75, (255, 127, 0)),
+            (0.87, (255, 0, 0)),
+            (1.0,  (128, 0, 0)),
+        ]
+        self._jet_cmap = pg.ColorMap(
+            pos=[c[0] for c in jet_colors],
+            color=[c[1] for c in jet_colors],
+        )
+        self._img.setColorMap(self._jet_cmap)
         self._plot.addItem(self._img)
 
         self._lut = pg.HistogramLUTItem(image=self._img)
+        self._lut.gradient.setColorMap(self._jet_cmap)
         self._layout_widget.addItem(self._lut)
 
         # 信号类型选择
@@ -642,6 +667,8 @@ class RangeDopplerPlot(QWidget):
 
         self._sig_type = 0  # 0=echo, 1=target, 2=jam
         self._rd_cache = {}
+        self._tnrn = None
+        self._gama = 0.0
         self._sig_group.idToggled.connect(self._on_sig_toggle)
 
         layout.addWidget(self._layout_widget, stretch=1)
@@ -653,11 +680,17 @@ class RangeDopplerPlot(QWidget):
             self._render_cached()
 
     def _compute_rd(self, matrix):
-        """计算 Range-Doppler 图: 距离向 FFT + 多普勒向 FFT."""
+        """计算 Range-Doppler 图: 去斜 → 距离向 FFT → 多普勒向 FFT."""
         nrn, nan1 = matrix.shape
+        # 去斜 (de-chirp): 乘以参考 chirp 的共轭
+        if self._tnrn is not None and self._gama > 0:
+            ref = np.exp(1j * np.pi * self._gama * self._tnrn ** 2)
+            dechirped = matrix * np.conj(ref)[:, np.newaxis]
+        else:
+            dechirped = matrix
         # 距离向脉压 (每列 FFT)
-        range_compressed = np.fft.fft(matrix, axis=0)
-        # 多普勒处理 (每行 FFT)
+        range_compressed = np.fft.fft(dechirped, axis=0)
+        # 多普勒处理 (每行 FFT, shift 使零多普勒居中)
         rd_map = np.fft.fftshift(np.fft.fft(range_compressed, axis=1), axes=1)
         rd_mag = 20.0 * np.log10(np.abs(rd_map) + 1e-12)
         return rd_mag
@@ -694,7 +727,9 @@ class RangeDopplerPlot(QWidget):
             padding=0.02,
         )
 
-    def update_plot(self, target_signal, jam_signal, echo_target):
+    def update_plot(self, target_signal, jam_signal, echo_target, tnrn=None, gama=0.0):
+        self._tnrn = tnrn
+        self._gama = gama
         self._rd_cache = {}
         if echo_target is not None:
             self._rd_cache["echo_target"] = self._compute_rd(echo_target)
@@ -785,7 +820,15 @@ class STFTPlotWidget(QWidget):
         self._sig_type = 2
         self._cache_key = None
         self._stft_cache = {}
+        self._empty_signals: set = set()
         self._sig_group.idToggled.connect(self._on_sig_toggle)
+
+        # 空信号提示文字
+        self._empty_text = pg.TextItem(anchor=(0.5, 0.5))
+        self._empty_text.setColor((180, 180, 180, 200))
+        self._empty_text.setFont(pg.QtGui.QFont("Microsoft YaHei", 13, pg.QtGui.QFont.Weight.Bold))
+        self._plot.addItem(self._empty_text)
+        self._empty_text.setVisible(False)
 
     def _on_sig_toggle(self, btn_id, checked):
         if checked:
@@ -816,8 +859,24 @@ class STFTPlotWidget(QWidget):
         return f_arr, t_arr, mag_db
 
     def _render_cached(self):
-        keys = ["echo_target", "target_signal", "jam_signal"]
+        keys = ["target_signal", "jam_signal", "echo_target"]
         key = keys[self._sig_type]
+        label_names = {0: "目标回波", 1: "干扰信号", 2: "合成回波"}
+
+        # 空信号提示
+        if key in self._empty_signals:
+            self._img.clear()
+            self._empty_text.setText(f"该脉冲无{label_names[self._sig_type]}数据")
+            vr = self._plot.viewRange()
+            cx = (vr[0][0] + vr[0][1]) / 2
+            cy = (vr[1][0] + vr[1][1]) / 2
+            self._empty_text.setPos(cx, cy)
+            self._empty_text.setVisible(True)
+            self._plot.setTitle(f"STFT — {label_names[self._sig_type]} (无数据)",
+                                color=_pt()["pg_fg"], size="11pt")
+            return
+
+        self._empty_text.setVisible(False)
         if key not in self._stft_cache:
             return
         f_arr, t_arr, mag_db = self._stft_cache[key]
@@ -841,7 +900,6 @@ class STFTPlotWidget(QWidget):
         )
         self._plot.getViewBox().autoRange()
 
-        label_names = {0: "目标回波", 1: "干扰信号", 2: "合成回波"}
         self._plot.setTitle(f"STFT — {label_names[self._sig_type]}",
                             color=_pt()["pg_fg"], size="11pt")
 
@@ -854,6 +912,7 @@ class STFTPlotWidget(QWidget):
             return
         self._cache_key = cache_key
         self._stft_cache = {}
+        self._empty_signals = set()
 
         cols = [
             ("target_signal", target_col),
@@ -862,7 +921,10 @@ class STFTPlotWidget(QWidget):
         ]
         for key, col in cols:
             if col is not None and len(col) > 0:
-                self._stft_cache[key] = self._compute_stft(col, fs, fc)
+                if np.max(np.abs(col)) < 1e-10:
+                    self._empty_signals.add(key)
+                else:
+                    self._stft_cache[key] = self._compute_stft(col, fs, fc)
 
         self._render_cached()
 
@@ -870,51 +932,140 @@ class STFTPlotWidget(QWidget):
         self._img.clear()
         self._cache_key = None
         self._stft_cache = {}
+        self._empty_signals = set()
+        self._empty_text.setVisible(False)
 
 
 # ── 6. 脉冲对比图 ──
 
-class PulseComparePlot(_BasePlot):
+class PulseComparePlot(QWidget):
 
     def __init__(self, parent=None):
-        super().__init__("脉冲对比 — 目标/干扰/合成", parent)
+        super().__init__(parent)
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+
         pt = _pt()
-        _set_label(self, "bottom", "快时间", units="s")
-        _set_label(self, "left", "包络幅度")
 
-        self._c_target = self.plot(pen=pg.mkPen(pt["blue"], width=1.5), name="目标回波",
+        # 信号类型选择: 目标/干扰/合成/全部叠加
+        ctrl_row = QHBoxLayout()
+        ctrl_row.setSpacing(4)
+        self._sig_group = QButtonGroup(self)
+        self._sig_group.setExclusive(True)
+        for idx, (name, color_key) in enumerate([
+            ("目标回波", "blue"), ("干扰信号", "red"),
+            ("合成回波", "green"), ("全部叠加", "purple"),
+        ]):
+            color = pt[color_key]
+            btn = QPushButton(name)
+            btn.setObjectName("sigToggle")
+            btn.setCheckable(True)
+            btn.setChecked(idx == 3)
+            btn.setStyleSheet(
+                f"QPushButton[sigToggle] {{ color: {color}; border: 1.5px solid {color}; "
+                f"background: transparent; border-radius: 4px; padding: 2px 12px; "
+                f"font-size: 11px; font-weight: bold; min-width: 50px; }}"
+                f"QPushButton[sigToggle]:checked {{ background: {color}; color: #fff; }}"
+            )
+            self._sig_group.addButton(btn, idx)
+            ctrl_row.addWidget(btn)
+        ctrl_row.addStretch()
+        layout.addLayout(ctrl_row)
+
+        self._pw = pg.PlotWidget(axisItems={'left': pg.AxisItem('left')})
+        self._pw.setTitle("脉冲对比", color=pt["pg_fg"], size="11pt")
+        self._pw.showGrid(x=True, y=True, alpha=0.4)
+        _apply_axis_style(self._pw)
+        self._pw.getViewBox().setBackgroundColor(pt["viewbox_bg"])
+        _set_label(self._pw, "bottom", "快时间", units="s")
+        _set_label(self._pw, "left", "包络幅度")
+
+        self._c_target = self._pw.plot(pen=pg.mkPen(pt["blue"], width=1.5), name="目标回波",
+                                       clipToView=True, downsample=2)
+        self._c_jam = self._pw.plot(pen=pg.mkPen(pt["red"], width=1.5), name="干扰信号",
                                     clipToView=True, downsample=2)
-        self._c_jam = self.plot(pen=pg.mkPen(pt["red"], width=1.5), name="干扰信号",
-                                 clipToView=True, downsample=2)
-        self._c_echo = self.plot(pen=pg.mkPen(pt["green"], width=1.5), name="合成回波",
-                                  clipToView=True, downsample=2)
+        self._c_echo = self._pw.plot(pen=pg.mkPen(pt["green"], width=1.5), name="合成回波",
+                                     clipToView=True, downsample=2)
 
-        self._add_legend("目标回波", self._c_target)
-        self._add_legend("干扰信号", self._c_jam)
-        self._add_legend("合成回波", self._c_echo)
+        lg = self._pw.addLegend(offset=(10, 10), labelTextColor=pt["text"],
+                                brush=pg.mkBrush(255, 255, 255, 220),
+                                pen=pg.mkPen(pt["axis"]))
+        lg.addItem(self._c_target, "目标回波")
+        lg.addItem(self._c_jam, "干扰信号")
+        lg.addItem(self._c_echo, "合成回波")
 
+        # 十字准线
+        self._vline = pg.InfiniteLine(angle=90, pen=pg.mkPen("#999", width=1, style=Qt.PenStyle.DashLine))
+        self._hline = pg.InfiniteLine(angle=0, pen=pg.mkPen("#999", width=1, style=Qt.PenStyle.DashLine))
+        self._vline.setVisible(False)
+        self._hline.setVisible(False)
+        self._pw.addItem(self._vline, ignoreBounds=True)
+        self._pw.addItem(self._hline, ignoreBounds=True)
+        self._crosshair_label = pg.TextItem(anchor=(0, 1), color=pt["pg_fg"],
+                                             fill=pg.mkBrush(255, 255, 255, 210))
+        self._crosshair_label.setFont(pg.QtGui.QFont("Menlo", 9, pg.QtGui.QFont.Weight.Bold))
+        self._crosshair_label.setPos(0, 0)
+        self._crosshair_label.setVisible(False)
+        self._pw.addItem(self._crosshair_label, ignoreBounds=True)
+        self._pw.scene().sigMouseMoved.connect(self._on_mouse_moved)
+
+        layout.addWidget(self._pw, stretch=1)
+
+        self._sig_type = 3  # 0=target, 1=jam, 2=echo, 3=all
         self._tnrn = None
+        self._cols = [None, None, None]
 
-    def _format_crosshair(self, pos):
-        x, y = pos.x(), pos.y()
-        self._crosshair_label.setText(f"t={x:.4e} s  |x|={y:.4f}")
-        self._crosshair_label.setPos(x, y)
-        self._crosshair_label.setVisible(True)
+        self._sig_group.idToggled.connect(self._on_sig_toggle)
+
+    def _on_mouse_moved(self, evt):
+        pos = self._pw.getViewBox().mapSceneToView(evt)
+        if self._pw.getViewBox().sceneBoundingRect().contains(evt):
+            self._vline.setPos(pos.x())
+            self._hline.setPos(pos.y())
+            self._vline.setVisible(True)
+            self._hline.setVisible(True)
+            x, y = pos.x(), pos.y()
+            self._crosshair_label.setText(f"t={x:.4e} s  |x|={y:.4f}")
+            self._crosshair_label.setPos(x, y)
+            self._crosshair_label.setVisible(True)
+        else:
+            self._vline.setVisible(False)
+            self._hline.setVisible(False)
+            self._crosshair_label.setVisible(False)
+
+    def _on_sig_toggle(self, btn_id, checked):
+        if checked:
+            self._sig_type = btn_id
+            self._apply_visibility()
+
+    def _apply_visibility(self):
+        if self._sig_type == 3:
+            self._c_target.setVisible(True)
+            self._c_jam.setVisible(True)
+            self._c_echo.setVisible(True)
+        else:
+            self._c_target.setVisible(self._sig_type == 0)
+            self._c_jam.setVisible(self._sig_type == 1)
+            self._c_echo.setVisible(self._sig_type == 2)
+        self._pw.getViewBox().autoRange()
 
     def update_plot(self, tnrn, target_col, jam_col, echo_col):
         if tnrn is None or len(tnrn) == 0:
             return
         self._tnrn = tnrn
+        self._cols = [target_col, jam_col, echo_col]
         self._c_target.setData(tnrn, np.abs(target_col) if target_col is not None else [])
         self._c_jam.setData(tnrn, np.abs(jam_col) if jam_col is not None else [])
         self._c_echo.setData(tnrn, np.abs(echo_col) if echo_col is not None else [])
-        self.getViewBox().autoRange()
+        self._apply_visibility()
 
     def clear_data(self):
         self._c_target.setData([], [])
         self._c_jam.setData([], [])
         self._c_echo.setData([], [])
         self._tnrn = None
+        self._cols = [None, None, None]
 
 
 # ── 7. 拖引轨迹图 ──
@@ -938,9 +1089,9 @@ class TrajectoryPlot(QWidget):
         _set_label(self._pw, "left", "峰值位置")
 
         self._curve = self._pw.plot(pen=pg.mkPen(pt["red"], width=2),
-                                    clipToView=True, symbol='o', symbolSize=4)
+                                    clipToView=True, symbol='o', symbolSize=4, name="干扰")
         self._curve_target = self._pw.plot(pen=pg.mkPen(pt["blue"], width=1.5, style=Qt.PenStyle.DashLine),
-                                           clipToView=True, name="目标位置")
+                                           clipToView=True, symbol='s', symbolSize=3, name="目标")
 
         # 十字准线
         self._vline = pg.InfiniteLine(angle=90, pen=pg.mkPen("#999", width=1, style=Qt.PenStyle.DashLine))
@@ -991,7 +1142,11 @@ class TrajectoryPlot(QWidget):
         self._show_placeholder = True
         self._traj_type = 0
         self._jam_signal = None
+        self._target_signal = None
         self._tnrn = None
+        self._prf = 10e3
+        self._jam_distances = None
+        self._target_distances = None
         self._type_group.idToggled.connect(self._on_type_toggle)
 
     def _on_mouse_moved(self, evt):
@@ -1017,43 +1172,66 @@ class TrajectoryPlot(QWidget):
             if not self._show_placeholder and self._jam_signal is not None:
                 self._render()
 
+    def _peak_distances(self, signal):
+        """从信号矩阵计算每个脉冲的峰值距离 (m)"""
+        nrn, nan1 = signal.shape
+        energy = np.max(np.abs(signal), axis=0)
+        peaks = np.argmax(np.abs(signal), axis=0).astype(float)
+        peaks[energy < 1e-10] = np.nan
+        if self._tnrn is not None:
+            valid = ~np.isnan(peaks)
+            distances = np.full(nan1, np.nan)
+            distances[valid] = self._tnrn[peaks[valid].astype(int)] * 1.5e8
+            return distances
+        return peaks
+
     def _render(self):
-        if self._jam_signal is None or self._tnrn is None:
+        if self._jam_signal is None:
             return
         nrn, nan1 = self._jam_signal.shape
         pulses = np.arange(nan1)
 
+        if self._jam_distances is None:
+            self._jam_distances = self._peak_distances(self._jam_signal)
+        if self._target_distances is None and self._target_signal is not None:
+            self._target_distances = self._peak_distances(self._target_signal)
+
         if self._traj_type == 0:
-            # 峰值距离: 每个脉冲的峰值位置 (距离单元)
-            peak_indices = np.argmax(np.abs(self._jam_signal), axis=0)
-            self._curve.setData(pulses, peak_indices)
-            # 目标位置 (近似固定)
-            target_idx = np.argmax(np.mean(np.abs(self._jam_signal[:, :max(1, nan1 // 4)]), axis=1))
-            self._curve_target.setData(pulses, np.full(nan1, target_idx))
-            self._pw.setTitle("拖引轨迹 — 峰值距离 (距离单元)",
+            # ── 峰值距离 ──
+            self._curve.setData(pulses, self._jam_distances)
+            if self._target_distances is not None:
+                self._curve_target.setData(pulses, self._target_distances)
+            else:
+                self._curve_target.setData([], [])
+            self._pw.setTitle("拖引轨迹 — 峰值距离",
                               color=_pt()["pg_fg"], size="11pt")
             _set_label(self._pw, "bottom", "脉冲索引")
-            _set_label(self._pw, "left", "距离单元")
+            _set_label(self._pw, "left", "距离", units="m")
         else:
-            # 峰值速度: 脉冲间相位差估算多普勒
-            velocities = []
+            # ── 峰值速度: 脉冲间距离变化率 ──
+            jam_v = np.full(nan1, np.nan)
             for k in range(1, nan1):
-                col_curr = self._jam_signal[:, k]
-                col_prev = self._jam_signal[:, k - 1]
-                peak_idx = np.argmax(np.abs(col_curr))
-                phase_diff = np.angle(col_curr[peak_idx] * np.conj(col_prev[peak_idx]))
-                velocities.append(phase_diff)
-            if velocities:
-                velocities = np.array(velocities)
-                self._curve.setData(pulses[1:], velocities)
+                if not (np.isnan(self._jam_distances[k]) or np.isnan(self._jam_distances[k - 1])):
+                    jam_v[k] = (self._jam_distances[k] - self._jam_distances[k - 1]) * self._prf
+
+            self._curve.setData(pulses, jam_v)
+
+            if self._target_distances is not None:
+                tgt_v = np.full(nan1, np.nan)
+                for k in range(1, nan1):
+                    if not (np.isnan(self._target_distances[k]) or np.isnan(self._target_distances[k - 1])):
+                        tgt_v[k] = (self._target_distances[k] - self._target_distances[k - 1]) * self._prf
+                self._curve_target.setData(pulses, tgt_v)
+            else:
                 self._curve_target.setData([], [])
-                self._pw.setTitle("拖引轨迹 — 脉冲间相位变化 (rad)",
-                                  color=_pt()["pg_fg"], size="11pt")
-                _set_label(self._pw, "bottom", "脉冲索引")
-                _set_label(self._pw, "left", "相位差", units="rad")
+
+            self._pw.setTitle("拖引轨迹 — 峰值速度",
+                              color=_pt()["pg_fg"], size="11pt")
+            _set_label(self._pw, "bottom", "脉冲索引")
+            _set_label(self._pw, "left", "速度", units="m/s")
         self._pw.getViewBox().autoRange()
 
-    def update_plot(self, mode, jam_signal, tnrn=None):
+    def update_plot(self, mode, jam_signal, target_signal=None, tnrn=None, prf=10e3):
         if mode not in (5, 6):
             self._show_placeholder = True
             self._placeholder_label.setVisible(True)
@@ -1064,14 +1242,21 @@ class TrajectoryPlot(QWidget):
         self._placeholder_label.setVisible(False)
         self._pw.setVisible(True)
         self._jam_signal = jam_signal
+        self._target_signal = target_signal
         self._tnrn = tnrn
+        self._prf = prf
+        self._jam_distances = None
+        self._target_distances = None
         self._render()
 
     def clear_data(self):
         self._curve.setData([], [])
         self._curve_target.setData([], [])
         self._jam_signal = None
+        self._target_signal = None
         self._tnrn = None
+        self._jam_distances = None
+        self._target_distances = None
         self._show_placeholder = True
         self._placeholder_label.setVisible(True)
         self._pw.setVisible(False)
@@ -1083,8 +1268,9 @@ class PlotPanel(QWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
+        self._results = {}  # mode -> result
         self._result = None
-        self._mode = None
+        self._current_mode = None
         self._tnrn = None
         self._fr = None
         self._fc = 0.0
@@ -1104,13 +1290,14 @@ class PlotPanel(QWidget):
         toolbar = QHBoxLayout()
         toolbar.setSpacing(8)
 
-        lbl_mode = QLabel("当前模式:")
+        lbl_mode = QLabel("模式:")
         lbl_mode.setStyleSheet(f"color: {_pt()['text']}; font-size: 12px; font-weight: bold;")
         toolbar.addWidget(lbl_mode)
 
-        self._mode_label = QLabel("--")
-        self._mode_label.setStyleSheet(f"color: {_pt()['accent']}; font-size: 12px; font-weight: bold;")
-        toolbar.addWidget(self._mode_label)
+        self._mode_combo = QComboBox()
+        self._mode_combo.setMinimumWidth(200)
+        self._mode_combo.currentIndexChanged.connect(self._on_mode_changed)
+        toolbar.addWidget(self._mode_combo)
 
         toolbar.addStretch()
 
@@ -1162,7 +1349,7 @@ class PlotPanel(QWidget):
         layout.addWidget(self._tabs)
 
     def _on_tab_changed(self, idx):
-        if self._result is not None:
+        if self._current_mode is not None and self._current_mode in self._results:
             pulse_idx = self._pulse_combo.currentIndex()
             if pulse_idx >= 0:
                 self._force_update_visible(idx, pulse_idx)
@@ -1185,16 +1372,30 @@ class PlotPanel(QWidget):
             self._time_plot.update_plot(self._tnrn, target_col, jam_col, echo_col)
         elif tab_idx == 1 and self._fr is not None:
             self._freq_plot.update_plot(self._fr, target_col, jam_col, echo_col)
+        elif tab_idx == 2:
+            target = result.get("target_signal")
+            jam = result.get("jam_signal")
+            self._image_plot.update_plot(target, jam, echo)
+        elif tab_idx == 3:
+            target = result.get("target_signal")
+            jam = result.get("jam_signal")
+            self._rd_plot.update_plot(target, jam, echo, self._tnrn, self._gama)
         elif tab_idx == 4 and self._tnrn is not None and self._fs > 0:
             self._stft_plot.update_plot(self._tnrn, target_col, jam_col, echo_col, self._fs, self._fc)
         elif tab_idx == 5 and self._tnrn is not None:
             self._pulse_compare_plot.update_plot(self._tnrn, target_col, jam_col, echo_col)
+        elif tab_idx == 6:
+            jam = result.get("jam_signal")
+            target = result.get("target_signal")
+            self._trajectory_plot.update_plot(self._current_mode, jam, target, self._tnrn, self._prf)
 
-    def set_time_freq_axes(self, tnrn, fr, fc=0.0, fs=0.0):
+    def set_time_freq_axes(self, tnrn, fr, fc=0.0, fs=0.0, gama=0.0, prf=10e3):
         self._tnrn = tnrn
         self._fr = fr
         self._fc = fc
         self._fs = fs
+        self._gama = gama
+        self._prf = prf
 
     _CASE_NAMES = {
         1: "Case1 RDJ 距离假目标",
@@ -1210,13 +1411,37 @@ class PlotPanel(QWidget):
     }
 
     def update_plots(self, mode, result):
-        self._result = result
-        self._mode = mode
-        self._mode_label.setText(self._CASE_NAMES.get(mode, f"Case{mode}"))
+        """追加单个 mode 的结果并刷新"""
+        self._results[mode] = result
 
-        echo = result.get("echo_target")
-        jam = result.get("jam_signal")
-        target = result.get("target_signal")
+        # 重建 mode combo
+        self._mode_combo.blockSignals(True)
+        self._mode_combo.clear()
+        mode_list = sorted(self._results.keys())
+        for m in mode_list:
+            self._mode_combo.addItem(self._CASE_NAMES.get(m, f"Case{m}"), userData=m)
+        if mode in mode_list:
+            self._mode_combo.setCurrentIndex(mode_list.index(mode))
+        self._mode_combo.blockSignals(False)
+
+        self._refresh_plots(mode)
+
+    def _on_mode_changed(self, idx):
+        if idx < 0:
+            return
+        mode = self._mode_combo.itemData(idx)
+        if mode is not None and mode in self._results:
+            self._refresh_plots(mode)
+
+    def _refresh_plots(self, mode):
+        self._current_mode = mode
+        if mode is None or mode not in self._results:
+            return
+        self._result = self._results[mode]
+
+        echo = self._result.get("echo_target")
+        jam = self._result.get("jam_signal")
+        target = self._result.get("target_signal")
 
         if echo is not None:
             nrn, nan1 = echo.shape
@@ -1231,12 +1456,12 @@ class PlotPanel(QWidget):
 
             # 更新所有图表
             self._image_plot.update_plot(target, jam, echo)
-            self._rd_plot.update_plot(target, jam, echo)
-            self._trajectory_plot.update_plot(mode, jam)
+            self._rd_plot.update_plot(target, jam, echo, self._tnrn, self._gama)
+            self._trajectory_plot.update_plot(mode, jam, target, self._tnrn, self._prf)
             self._update_single_pulse(default_pulse)
 
     def _on_pulse_changed(self, idx):
-        if idx < 0 or self._result is None:
+        if idx < 0 or self._current_mode is None or self._current_mode not in self._results:
             return
         self._pending_pulse = idx
         self._pulse_timer.start()
@@ -1275,9 +1500,10 @@ class PlotPanel(QWidget):
                    self._pulse_compare_plot, self._trajectory_plot]:
             w.clear_data()
         self._pulse_combo.clear()
-        self._mode_label.setText("--")
+        self._mode_combo.clear()
+        self._results = {}
         self._result = None
-        self._mode = None
+        self._current_mode = None
 
     def _export(self):
         path, _ = QFileDialog.getSaveFileName(
@@ -1297,23 +1523,15 @@ class PlotPanel(QWidget):
                 from pyqtgraph.exporters import SVGExporter
                 if isinstance(widget, (ImagePlotWidget, RangeDopplerPlot, STFTPlotWidget)):
                     exporter = SVGExporter(widget._plot)
-                elif isinstance(widget, (TimeDomainPlot, FreqDomainPlot)):
-                    exporter = SVGExporter(widget._pw.plotItem)
-                elif isinstance(widget, TrajectoryPlot):
-                    exporter = SVGExporter(widget._pw.plotItem)
                 else:
-                    exporter = SVGExporter(widget.plotItem)
+                    exporter = SVGExporter(widget._pw.plotItem)
                 exporter.export(path)
             else:
                 from pyqtgraph.exporters import ImageExporter
                 if isinstance(widget, (ImagePlotWidget, RangeDopplerPlot, STFTPlotWidget)):
                     exporter = ImageExporter(widget._plot)
-                elif isinstance(widget, (TimeDomainPlot, FreqDomainPlot)):
-                    exporter = ImageExporter(widget._pw.plotItem)
-                elif isinstance(widget, TrajectoryPlot):
-                    exporter = ImageExporter(widget._pw.plotItem)
                 else:
-                    exporter = ImageExporter(widget.plotItem)
+                    exporter = ImageExporter(widget._pw.plotItem)
                 exporter.parameters()['width'] = 1920
                 exporter.export(path)
 
@@ -1330,7 +1548,7 @@ class PlotPanel(QWidget):
         if not dir_path:
             return
 
-        mode = self._mode or 0
+        mode = self._current_mode or 0
         tag = self._CASE_NAMES.get(mode, f"Case{mode}").replace(" ", "_")
         saved = []
         try:

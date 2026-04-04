@@ -16,28 +16,37 @@ struct JammingParams {
     double A_RJ  = 10.0;     // 干扰幅度增益 (dB)
     double z_R0  = 2000.0;   // 雷达初始高度 (m)
     int    nan1  = 64;       // 方位向脉冲数
+    double range_walk_factor = 4000.0;  // 距离走动放大因子 (Case 4, 5)
 
     // ── Case 1: 距离假目标干扰 (RDJ) ──
-    int    case1_jj    = 1;        // 干扰脉冲延迟数
-    double case1_Rj    = 100.0;    // 干扰目标距离 (m)
-    double case1_amp_j = 10.0;     // 干扰信号幅度增益 (线性倍数)
+    int    case1_jj         = 1;        // 干扰脉冲延迟数
+    double case1_Rj         = 100.0;    // 干扰目标距离 (m)
+    double case1_amp_j      = 10.0;     // 干扰信号幅度增益 (线性倍数)
+    double case1_amp_target = 1.0;      // 目标幅度
+    double case1_awgn_snr   = 10.0;     // AWGN 信噪比 (dB)
 
     // ── Case 2: 速度假目标干扰 (VDJ) ──
-    double case2_Vj    = 1e5;      // 假目标速度 (m/s)
-    int    case2_jj    = 1;        // 干扰延迟脉冲数
-    double case2_Rj    = 10.0;     // 假目标距离 (m)
-    double case2_amp_j = 10.0;     // 干扰信号幅度增益 (线性倍数)
+    double case2_Vj         = 1e5;      // 假目标速度 (m/s)
+    int    case2_jj         = 1;        // 干扰延迟脉冲数
+    double case2_Rj         = 10.0;     // 假目标距离 (m)
+    double case2_amp_j      = 10.0;     // 干扰信号幅度增益 (线性倍数)
+    double case2_amp_target = 1.0;      // 目标幅度
+    double case2_awgn_snr   = 10.0;     // AWGN 信噪比 (dB)
 
     // ── Case 3: 间歇采样转发干扰 (ISRJ) ──
-    double case3_Ts_ISRJ = 4e-6;   // 采样周期 (s)
-    double case3_T_ISRJ  = 0.0;    // 采样脉宽 (s), 0=默认 Ts_ISRJ/4
-    double case3_Rj      = 10.0;   // 干扰目标距离 (m)
-    double case3_amp_j   = 10.0;   // 干扰信号幅度增益 (线性倍数)
+    double case3_Ts_ISRJ    = 4e-6;     // 采样周期 (s)
+    double case3_T_ISRJ     = 0.0;      // 采样脉宽 (s), 0=默认 Ts_ISRJ/4
+    double case3_Rj         = 10.0;     // 干扰目标距离 (m)
+    double case3_amp_j      = 10.0;     // 干扰信号幅度增益 (线性倍数)
+    double case3_amp_target = 1.0;      // 目标幅度
+    double case3_awgn_snr   = 10.0;     // AWGN 信噪比 (dB)
 
     // ── Case 4: 窄带噪声干扰 (NNJ) ──
     double case4_power_dBW     = 20.0;  // 噪声功率 (dBW)
     int    case4_butter_order  = 8;     // 低通滤波器阶数
     double case4_butter_cutoff = 0.3;   // 归一化截止频率
+    double case4_amp_target    = 1.0;   // 目标幅度
+    double case4_awgn_snr      = 10.0;  // AWGN 信噪比 (dB)
 
     // ── Case 5: 距离波门拖引干扰 (RGPO) ──
     double case5_Vj           = 340.0;  // 假目标拖引速度 (m/s)
@@ -52,12 +61,14 @@ struct JammingParams {
     double case6_amp_jammer   = 1.4;    // 干扰幅度
     int    case6_drag_stages  = 4;      // 拖引阶段次数
     double case6_awgn_snr     = 10.0;   // AWGN 信噪比 (dB)
+    double case6_velocity_drag_factor = 40000.0;  // 速度拖引放大因子
 
     // ── Case 7: 密集假目标干扰 (DRFTJ) ──
     double case7_JSR        = 0.0;      // 干信比 (dB)
     double case7_amp_target = 1.0;      // 目标幅度
     int    case7_num_jam    = 50;       // 转发次数
     double case7_detaR      = 50.0;     // 每次转发距离增量 (m)
+    int    case7_forward_replicas = 3;  // 前向转发次数 (jn < 此值 → 前向)
     double case7_awgn_snr   = 10.0;     // AWGN 信噪比 (dB)
 
     // ── Case 8: 脉内前沿切片重复干扰 (IPLESRJ) ──

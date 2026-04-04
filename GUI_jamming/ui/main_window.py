@@ -36,23 +36,31 @@ def _run_jamming_cpp(mode, params):
     }
     jamming_cfg = {
         # Case 1
-        "case1_rdj.jj":      params.get("jamming.case1_rdj.jj", 1),
-        "case1_rdj.Rj":      params.get("jamming.case1_rdj.Rj", 100.0),
-        "case1_rdj.amp_j":   params.get("jamming.case1_rdj.amp_j", 10.0),
+        "case1_rdj.jj":         params.get("jamming.case1_rdj.jj", 1),
+        "case1_rdj.Rj":         params.get("jamming.case1_rdj.Rj", 100.0),
+        "case1_rdj.amp_j":      params.get("jamming.case1_rdj.amp_j", 10.0),
+        "case1_rdj.amp_target": params.get("jamming.case1_rdj.amp_target", 1.0),
+        "case1_rdj.awgn_snr":   params.get("jamming.case1_rdj.awgn_snr", 10.0),
         # Case 2
-        "case2_vdj.Vj":      params.get("jamming.case2_vdj.Vj", 1e5),
-        "case2_vdj.jj":      params.get("jamming.case2_vdj.jj", 1),
-        "case2_vdj.Rj":      params.get("jamming.case2_vdj.Rj", 10.0),
-        "case2_vdj.amp_j":   params.get("jamming.case2_vdj.amp_j", 10.0),
+        "case2_vdj.Vj":         params.get("jamming.case2_vdj.Vj", 1e5),
+        "case2_vdj.jj":         params.get("jamming.case2_vdj.jj", 1),
+        "case2_vdj.Rj":         params.get("jamming.case2_vdj.Rj", 10.0),
+        "case2_vdj.amp_j":      params.get("jamming.case2_vdj.amp_j", 10.0),
+        "case2_vdj.amp_target": params.get("jamming.case2_vdj.amp_target", 1.0),
+        "case2_vdj.awgn_snr":   params.get("jamming.case2_vdj.awgn_snr", 10.0),
         # Case 3
-        "case3_isrj.Ts_ISRJ": params.get("jamming.case3_isrj.Ts_ISRJ", 4e-6),
-        "case3_isrj.T_ISRJ":  params.get("jamming.case3_isrj.T_ISRJ", 0.0),
-        "case3_isrj.Rj":      params.get("jamming.case3_isrj.Rj", 10.0),
-        "case3_isrj.amp_j":   params.get("jamming.case3_isrj.amp_j", 10.0),
+        "case3_isrj.Ts_ISRJ":    params.get("jamming.case3_isrj.Ts_ISRJ", 4e-6),
+        "case3_isrj.T_ISRJ":     params.get("jamming.case3_isrj.T_ISRJ", 0.0),
+        "case3_isrj.Rj":         params.get("jamming.case3_isrj.Rj", 10.0),
+        "case3_isrj.amp_j":      params.get("jamming.case3_isrj.amp_j", 10.0),
+        "case3_isrj.amp_target": params.get("jamming.case3_isrj.amp_target", 1.0),
+        "case3_isrj.awgn_snr":   params.get("jamming.case3_isrj.awgn_snr", 10.0),
         # Case 4
         "case4_nnj.power_dBW":     params.get("jamming.case4_nnj.power_dBW", 20.0),
         "case4_nnj.butter_order":  params.get("jamming.case4_nnj.butter_order", 8),
         "case4_nnj.butter_cutoff": params.get("jamming.case4_nnj.butter_cutoff", 0.3),
+        "case4_nnj.amp_target":    params.get("jamming.case4_nnj.amp_target", 1.0),
+        "case4_nnj.awgn_snr":      params.get("jamming.case4_nnj.awgn_snr", 10.0),
         # Case 5
         "case5_rgpo.Vj":          params.get("jamming.case5_rgpo.Vj", 340.0),
         "case5_rgpo.amp_target":  params.get("jamming.case5_rgpo.amp_target", 1.0),
@@ -108,13 +116,13 @@ def _run_jamming_cpp(mode, params):
 class ComputeThread(QThread):
     logSignal = Signal(str, str)
     progressSignal = Signal(int, int)
-    finishedSignal = Signal(int, object)  # mode, result
+    finishedSignal = Signal(object)  # dict: mode -> result
     errorSignal = Signal(str)
 
-    def __init__(self, params, mode, parent=None):
+    def __init__(self, params, modes, parent=None):
         super().__init__(parent)
         self._params = params
-        self._mode = mode
+        self._modes = modes
         self._stop_flag = False
 
     def run(self):
@@ -132,29 +140,38 @@ class ComputeThread(QThread):
                 10: "梳状谱 (COMB)",
             }
 
-            self.logSignal.emit(f"开始计算 模式{self._mode}: {mode_names.get(self._mode, '')}", "header")
-            self.progressSignal.emit(0, 1)
+            total = len(self._modes)
+            results = {}
+            for idx, mode in enumerate(self._modes):
+                if self._stop_flag:
+                    self.logSignal.emit("计算已被用户中止。", "warning")
+                    break
 
-            t0 = time.time()
-            result = _run_jamming_cpp(self._mode, self._params)
-            elapsed = time.time() - t0
+                self.logSignal.emit(f"开始计算 模式{mode}: {mode_names.get(mode, '')}", "header")
+                self.progressSignal.emit(idx, total)
 
-            if result.get("log_output"):
-                for line in result["log_output"].split("\n"):
-                    if line.strip():
-                        self.logSignal.emit(line, "info")
+                t0 = time.time()
+                result = _run_jamming_cpp(mode, self._params)
+                elapsed = time.time() - t0
 
-            echo = result.get("echo_target")
-            if echo is not None:
-                nrn, nan1 = echo.shape
-                self.logSignal.emit(
-                    f"echo_target shape: ({nrn}, {nan1})", "info"
-                )
+                if result.get("log_output"):
+                    for line in result["log_output"].split("\n"):
+                        if line.strip():
+                            self.logSignal.emit(line, "info")
 
-            self.logSignal.emit(f"模式{self._mode} 完成 (耗时 {elapsed*1000:.1f} ms)", "success")
+                echo = result.get("echo_target")
+                if echo is not None:
+                    nrn, nan1 = echo.shape
+                    self.logSignal.emit(
+                        f"echo_target shape: ({nrn}, {nan1})", "info"
+                    )
 
-            self.progressSignal.emit(1, 1)
-            self.finishedSignal.emit(self._mode, result)
+                self.logSignal.emit(f"模式{mode} 完成 (耗时 {elapsed*1000:.1f} ms)", "success")
+
+                results[mode] = result
+                self.progressSignal.emit(idx + 1, total)
+
+            self.finishedSignal.emit(results)
 
         except Exception as e:
             self.errorSignal.emit(str(e))
@@ -179,6 +196,7 @@ class MainWindow(QMainWindow):
         self._compute_thread = None
         self._last_result = None
         self._last_mode = None
+        self._last_results = {}
         self._current_theme = "light"
 
         self._setup_style()
@@ -212,8 +230,10 @@ class MainWindow(QMainWindow):
         self._console_panel.apply_theme(theme)
         for lbl in self._param_panel._derived_labels.values():
             lbl.apply_theme(theme)
-        if self._last_result is not None:
-            self._plot_panel.update_plots(self._last_mode, self._last_result)
+        if self._last_results:
+            modes = sorted(self._last_results.keys())
+            if modes:
+                self._plot_panel.update_plots(modes[-1], self._last_results[modes[-1]])
 
     # ── Menu ──
 
@@ -439,7 +459,7 @@ class MainWindow(QMainWindow):
 
     # ── Computation ──
 
-    def _on_run(self, mode):
+    def _on_run(self, modes):
         if self._compute_thread and self._compute_thread.isRunning():
             return
 
@@ -449,8 +469,19 @@ class MainWindow(QMainWindow):
 
         derived = self._config.get_derived_params()
 
+        errors = self._validate_params(params, derived)
+        if errors:
+            for err in errors:
+                self._console_panel.append(err, "error")
+            return
+
+        self._plot_panel.set_time_freq_axes(derived["tnrn"], derived["fr"], derived["fc"],
+                                             fs=derived["fs"], gama=derived["gama"],
+                                             prf=derived["prf"])
+
         self._param_panel.set_running(True)
-        self._status_mode.setText(f"计算中... Case{mode}")
+        self._status_mode.setText("计算中...")
+        self._status_info.setText(f"模式: {modes}")
         self._progress_bar.setVisible(True)
         self._progress_bar.setValue(0)
 
@@ -463,7 +494,7 @@ class MainWindow(QMainWindow):
             except RuntimeError:
                 pass
 
-        self._compute_thread = ComputeThread(params, mode)
+        self._compute_thread = ComputeThread(params, modes)
         self._compute_thread.logSignal.connect(self._on_log)
         self._compute_thread.progressSignal.connect(self._on_progress)
         self._compute_thread.finishedSignal.connect(self._on_compute_finished)
@@ -476,6 +507,27 @@ class MainWindow(QMainWindow):
             self._compute_thread.stop()
             self._console_panel.append("正在停止计算...", "warning")
 
+    def _validate_params(self, params, derived):
+        errors = []
+        Tp = derived["Tp"]
+        B = derived["B"]
+        prf = derived["prf"]
+        fs = derived["fs"]
+        nan1 = derived["nan1"]
+        prt = derived["prt"]
+
+        if Tp <= 0:
+            errors.append("错误: 脉冲宽度 Tp 必须大于 0")
+        if B <= 0:
+            errors.append("错误: 信号带宽 B 必须大于 0")
+        if prf <= 0:
+            errors.append("错误: 脉冲重复频率 prf 必须大于 0")
+
+        if fs > 0 and B > 0 and fs < 2 * B:
+            errors.append(f"警告: 采样频率 fs={fs:.2e} Hz 低于奈奎斯特频率 2B={2*B:.2e} Hz，结果可能混叠")
+
+        return errors
+
     def _on_clear(self):
         self._plot_panel.clear_plots()
         self._console_panel.append("绘图已清除。", "dim")
@@ -483,6 +535,8 @@ class MainWindow(QMainWindow):
     def _on_restore_defaults(self):
         self._plot_panel.clear_plots()
         self._apply_config_to_panel()
+        for cb in self._param_panel._case_checks.values():
+            cb.setChecked(True)
         self._console_panel.append("[参数] 已恢复为配置文件默认值。", "success")
 
     def _on_log(self, text, level="info"):
@@ -493,19 +547,23 @@ class MainWindow(QMainWindow):
             pct = int(current / total * 100)
             self._progress_bar.setVisible(True)
             self._progress_bar.setValue(pct)
-            self._status_info.setText(f"进度: {pct}%")
+            self._status_info.setText(f"进度: {pct}% ({current}/{total})")
 
-    def _on_compute_finished(self, mode, result):
-        self._last_mode = mode
-        self._last_result = result
+    def _on_compute_finished(self, results):
+        self._last_results = results
         self._param_panel.set_running(False)
         self._status_mode.setText("就绪")
         self._progress_bar.setVisible(False)
         self._progress_bar.setValue(0)
 
-        if result:
-            self._plot_panel.update_plots(mode, result)
-            self._status_info.setText(f"Case{mode} 完成")
+        if results:
+            # 将所有结果追加到 plot_panel
+            for mode, result in results.items():
+                self._plot_panel.update_plots(mode, result)
+            last_mode = list(results.keys())[-1]
+            self._last_mode = last_mode
+            self._last_result = results[last_mode]
+            self._status_info.setText(f"已完成 {len(results)} 个模式")
 
     def _on_compute_error(self, error_msg):
         self._param_panel.set_running(False)
