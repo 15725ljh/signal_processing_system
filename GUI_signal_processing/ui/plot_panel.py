@@ -1422,7 +1422,7 @@ class PlotPanel(QWidget):
                         if mat.ndim == 1:
                             mat = mat.reshape(-1, 1)
                         nr, nc = mat.shape
-                        with open(p, "w") as f:
+                        with open(p, "w", encoding="utf-8") as f:
                             f.write(f"{nr} {nc}\n")
                             for i in range(nr):
                                 for j in range(nc):
@@ -1435,7 +1435,7 @@ class PlotPanel(QWidget):
                         p = os.path.join(dir_path, f"04_{tag}_{name}.dat")
                         n = len(vec)
                         is_complex = np.iscomplexobj(vec)
-                        with open(p, "w") as f:
+                        with open(p, "w", encoding="utf-8") as f:
                             f.write(f"{n} 1\n")
                             for i in range(n):
                                 v = vec[i]

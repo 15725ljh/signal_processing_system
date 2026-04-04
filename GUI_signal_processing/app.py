@@ -50,8 +50,27 @@ def main():
         _pm = QPixmap()
         _pm.loadFromData(_png)
         if not _pm.isNull():
+            from PySide6.QtGui import QPainter, QFont, QColor
+            from PySide6.QtCore import QRectF
             for _s in [16, 24, 32, 48, 64, 128, 256]:
-                _icon.addPixmap(_pm.scaled(_s, _s, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
+                _sp = _pm.scaled(_s, _s, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+                _bsz = max(_s * 0.45, 10)
+                _cx = _s - _bsz * 0.55
+                _cy = _s - _bsz * 0.55
+                _p = QPainter(_sp)
+                _p.setRenderHint(QPainter.RenderHint.Antialiasing)
+                _bc = QColor("#9b59b6")  # 紫色
+                _bc.setAlpha(210)
+                _p.setBrush(_bc)
+                _p.setPen(Qt.PenStyle.NoPen)
+                _p.drawEllipse(QRectF(_cx - _bsz/2, _cy - _bsz/2, _bsz, _bsz))
+                _f = QFont("Arial", max(int(_bsz * 0.48), 5))
+                _f.setBold(True)
+                _p.setFont(_f)
+                _p.setPen(QColor(255, 255, 255))
+                _p.drawText(QRectF(_cx - _bsz/2, _cy - _bsz/2, _bsz, _bsz), Qt.AlignmentFlag.AlignCenter, "04")
+                _p.end()
+                _icon.addPixmap(_sp)
             app.setWindowIcon(_icon)
     except Exception:
         pass

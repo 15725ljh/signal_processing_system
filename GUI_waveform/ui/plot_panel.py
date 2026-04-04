@@ -1096,7 +1096,7 @@ class PlotPanel(QWidget):
     @staticmethod
     def _save_complex_matrix(mat, path):
         nr, nc = mat.shape
-        with open(path, "w") as f:
+        with open(path, "w", encoding="utf-8") as f:
             f.write(f"{nr} {nc}\n")
             for i in range(nr):
                 for j in range(nc):
@@ -1106,7 +1106,7 @@ class PlotPanel(QWidget):
     @staticmethod
     def _save_complex_vector(vec, path):
         n = len(vec)
-        with open(path, "w") as f:
+        with open(path, "w", encoding="utf-8") as f:
             f.write(f"{n} 1\n")
             for v in vec:
                 f.write(f"( {v.real:.15e} + {v.imag:.15e}j )\n")
@@ -1114,7 +1114,7 @@ class PlotPanel(QWidget):
     @staticmethod
     def _save_real_vector(vec, path):
         n = len(vec)
-        with open(path, "w") as f:
+        with open(path, "w", encoding="utf-8") as f:
             f.write(f"{n} 1\n")
             for v in vec:
                 f.write(f"{v:.15e}\n")
