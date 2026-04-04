@@ -1,0 +1,73 @@
+Claude Code 配置信息
+=====================
+
+## settings.json (C:\Users\15725\.claude\settings.json)
+
+{
+  "env": {
+    "ANTHROPIC_AUTH_TOKEN": "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+    "ANTHROPIC_BASE_URL": "https://open.bigmodel.cn/api/anthropic",
+    "API_TIMEOUT_MS": "300000",
+    "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
+    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "glm-4.7",
+    "ANTHROPIC_DEFAULT_SONNET_MODEL": "glm-5-turbo",
+    "ANTHROPIC_DEFAULT_OPUS_MODEL": "glm-5.1",
+    "HTTP_PROXY": "http://127.0.0.1:7890",
+    "HTTPS_PROXY": "http://127.0.0.1:7890"
+  },
+  "permissions": {
+    "defaultMode": "auto"
+  },
+  "model": "sonnet",
+  "defaultShell": "bash",
+  "statusLine": {
+    "type": "command",
+    "command": "bash ~/.claude/statusline-command.sh"
+  },
+  "enabledPlugins": {
+    "glm-plan-usage@zai-coding-plugins": true,
+    "glm-plan-bug@zai-coding-plugins": true
+  },
+  "extraKnownMarketplaces": {
+    "zai-coding-plugins": {
+      "source": {
+        "source": "directory",
+        "path": "C:\\Users\\15725\\AppData\\Local\\npm-cache\\_npx\\2f024689b4d0d3b0\\node_modules\\@z_ai\\coding-helper\\zai-coding-plugins"
+      }
+    }
+  },
+  "language": "chinese",
+  "alwaysThinkingEnabled": true,
+  "autoCompactWindow": 175000,
+  "fastMode": true,
+  "autoMemoryEnabled": true,
+  "showThinkingSummaries": true,
+  "skipDangerousModePermissionPrompt": true,
+  "skipAutoPermissionPrompt": true
+}
+
+## statusline-command.sh (~/.claude/statusline-command.sh)
+
+#!/bin/bash
+# Claude Code status line: model | cwd | context
+PYTHONIOENCODING=utf-8 python -c "
+import sys, json, os, re
+try:
+    d = json.load(sys.stdin)
+    model = d.get('model', {}).get('display_name', 'unknown')
+    model = re.sub(r'(\x1b)?\[[0-9;]*[A-Za-z]]?', '', model)
+    cwd = d.get('cwd', '?')
+    home = os.path.expanduser('~')
+    if cwd.startswith(home):
+        cwd = '~' + cwd[len(home):]
+    cw = d.get('context_window', {})
+    pct = cw.get('used_percentage')
+    if pct is not None:
+        used_k = round(pct / 100 * 200, 1)
+        ctx = f'{used_k}K/200K ({round(pct,1)}%)'
+    else:
+        ctx = '已用:--'
+    print(f'{model} | {cwd} | {ctx}')
+except:
+    print('---')
+"
