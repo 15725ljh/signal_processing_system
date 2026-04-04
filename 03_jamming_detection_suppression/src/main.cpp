@@ -56,7 +56,7 @@ int main() {
     try { std_fs::create_directories(OUTPUT_DIR); } catch (...) {}
     // logFile: ofstream, 文本文件, 存储识别与抑制结果汇总日志
     std::string logPath = std::string(OUTPUT_DIR) + "03_detection_识别与抑制日志_log.txt";
-    std::ofstream logFile(logPath);
+    std::ofstream logFile(SW_U8PATH(logPath));
     if (!logFile.is_open()) {
         std::cerr << "错误：无法打开日志文件 " << logPath << " 进行写入。\n";
         return 1;

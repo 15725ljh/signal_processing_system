@@ -31,6 +31,26 @@ inline double bessel_i0(double x)
 #include <filesystem>                            // C++17文件系统(目录创建等)
 #include "fftw3.h"                               // FFTW3快速傅里叶变换库
 
+// Windows UTF-8 路径支持: 解决中文文件名在 GBK 系统下乱码的问题
+#ifdef _WIN32
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include <windows.h>
+namespace _fs_detail {
+inline std_fs::path _u8path(const std::string& s) {
+    if (s.empty()) return std_fs::path();
+    int n = MultiByteToWideChar(CP_UTF8, 0, s.c_str(), -1, nullptr, 0);
+    std::wstring w(n - 1, L'\0');
+    MultiByteToWideChar(CP_UTF8, 0, s.c_str(), -1, &w[0], n);
+    return std_fs::path(std::move(w));
+}
+}
+#define U8PATH(s) _fs_detail::_u8path(s)
+#else
+#define U8PATH(s) (s)
+#endif
+
 namespace std_fs = std::filesystem;              // filesystem命名空间别名
 
 #ifndef OUTPUT_DIR
@@ -71,7 +91,7 @@ inline void saveVector(const string& filename, const MatrixBase<Derived>& data) 
     string full_path = string(OUTPUT_DIR) + filename;
     ensure_output_dir();
     
-    ofstream file(full_path);
+    ofstream file(U8PATH(full_path));
     if (!file.is_open()) {
         cerr << "错误:无法打开文件 " << full_path << " :正被写入中." << endl;
         return;
@@ -100,7 +120,7 @@ inline void saveVector(const string& filename, const MatrixBase<Derived>& data) 
     string full_path = string(OUTPUT_DIR) + filename;
     ensure_output_dir();
     
-    ofstream file(full_path);
+    ofstream file(U8PATH(full_path));
     if (!file.is_open()) {
         cerr << "错误:无法打开文件 " << full_path << " :正被写入中." << endl;
         return;
@@ -125,7 +145,7 @@ inline void saveMatrix(const string& filename, const Matrix<complex<T>, Dynamic,
     string full_path = string(OUTPUT_DIR) + filename;
     ensure_output_dir();
     
-    ofstream file(full_path);
+    ofstream file(U8PATH(full_path));
     if (!file.is_open()) {
         cerr << "错误:无法打开文件 " << full_path << " :正被写入中." << endl;
         return;
@@ -148,7 +168,7 @@ inline void saveMatrix(const string& filename, const Matrix<T, Dynamic, Dynamic>
     string full_path = string(OUTPUT_DIR) + filename;
     ensure_output_dir();
     
-    ofstream file(full_path);
+    ofstream file(U8PATH(full_path));
     if (!file.is_open()) {
         cerr << "错误: 无法打开文件 " << full_path << " : 正被写入中." << endl;
         return;

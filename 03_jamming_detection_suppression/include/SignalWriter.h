@@ -6,6 +6,27 @@
 #include <Eigen/Dense> // 包含 Eigen 库，用于矩阵和向量操作，如 Eigen::VectorXcd 和 Eigen::RowVectorXcd
 #include <fstream>     // 包含 fstream，用于文件输入输出流，如 std::ofstream
 #include <iostream>    // 包含 iostream，用于标准输入输出流 (尽管 ostream 更具体，但通常也包含 iostream)
+#include <filesystem>  // C++17 文件系统
+
+// Windows UTF-8 路径支持: 解决中文文件名在 GBK 系统下乱码的问题
+#ifdef _WIN32
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include <windows.h>
+namespace _sw_detail {
+inline std::filesystem::path _u8path(const std::string& s) {
+    if (s.empty()) return std::filesystem::path();
+    int n = MultiByteToWideChar(CP_UTF8, 0, s.c_str(), -1, nullptr, 0);
+    std::wstring w(n - 1, L'\0');
+    MultiByteToWideChar(CP_UTF8, 0, s.c_str(), -1, &w[0], n);
+    return std::filesystem::path(std::move(w));
+}
+}
+#define SW_U8PATH(s) _sw_detail::_u8path(s)
+#else
+#define SW_U8PATH(s) (s)
+#endif
 
 /**
  * @brief 辅助函数：将 Eigen 复数向量写入文本文件
@@ -15,7 +36,7 @@
  * @param logStream 用于输出日志的 ostream 对象。
  */
 inline void writeComplexVectorToFile(const Eigen::VectorXcd& vec, const std::string& filename, std::ostream& logStream) {
-    std::ofstream outFile(filename);
+    std::ofstream outFile(SW_U8PATH(filename));
     if (outFile.is_open()) {
         for (int i = 0; i < vec.size(); ++i) {
             outFile << vec(i).real() << " " << vec(i).imag() << std::endl;
@@ -35,7 +56,7 @@ inline void writeComplexVectorToFile(const Eigen::VectorXcd& vec, const std::str
  * @param logStream 用于输出日志的 ostream 对象。
  */
 inline void writeComplexRowVectorToFile(const Eigen::RowVectorXcd& vec, const std::string& filename, std::ostream& logStream) {
-    std::ofstream outFile(filename);
+    std::ofstream outFile(SW_U8PATH(filename));
     if (outFile.is_open()) {
         for (int i = 0; i < vec.size(); ++i) {
             outFile << vec(i).real() << " " << vec(i).imag() << std::endl;
@@ -65,7 +86,7 @@ inline void writeConsolidatedSignalsToFile(
     const Eigen::VectorXcd& Targetsignal,
     const std::string& filename, std::ostream& logStream) {
 
-    std::ofstream outFile(filename);
+    std::ofstream outFile(SW_U8PATH(filename));
     if (!outFile.is_open()) {
         logStream << "错误：无法打开文件进行写入: " << filename << std::endl;
         return;
