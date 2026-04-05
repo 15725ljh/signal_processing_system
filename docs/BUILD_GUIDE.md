@@ -10,7 +10,7 @@
 
 ## 目录结构概览
 
-> **注意**：C++ 源码已从仓库移除，备份为加密 zip 包（见下方）。4 个 C++ 模块文件夹（01~04）需解压 zip 后才能使用。
+> **注意**：C++ 源码已从仓库移除，备份为加密 zip 包（见下方）。`third_party/` 目录也已打包为 `third_party.zip`。编译前需先解压。
 
 ```
 signal_processing_system/
@@ -18,10 +18,7 @@ signal_processing_system/
 ├── CMakeLists.txt                  # C++ 顶层构建配置
 ├── build_all.bat                   # 一键构建全部 4 个 GUI exe
 ├── docs/                           # 统一文档目录
-├── third_party/                    # 本地第三方库
-│   ├── nlohmann/json.hpp           # 自实现迷你JSON解析器(~215行, 已包含)
-│   ├── eigen/                      # Eigen 3.4.0 (header-only, 已包含)
-│   └── fftw-install/               # FFTW 3.3.10 (需编译)
+├── third_party.zip                 # 第三方库备份 (Eigen + FFTW + mini JSON)
 ├── cmake/                          # CMake 模块 (FindLibraries.cmake)
 ├── build/                          # C++ 构建输出目录
 ├── output/                         # 运行输出目录(运行程序后生成)
@@ -35,7 +32,7 @@ signal_processing_system/
 └── 04_GUI_signal_processing/          # PySide6 GUI (信号处理)
 ```
 
-解压 zip 后将生成对应的 C++ 模块文件夹（`01_waveform_generation/`、`02_jamming_generation/`、`03_jamming_detection_suppression/`、`04_signal_processing/`），包含 `CMakeLists.txt`、`cmake/`、`common/Config.h` 等构建所需文件。
+解压 zip 后将生成对应的 C++ 模块文件夹（`01_waveform_generation/` 等）和 `third_party/` 目录（含 Eigen、FFTW、mini JSON），编译所需文件齐全。
 
 ---
 
@@ -48,23 +45,27 @@ signal_processing_system/
 | mini JSON 解析器 | `third_party/nlohmann/json.hpp` (~215行) | nlohmann/json (24765行) | 仅实现本项目 Config.h 所需的 API 子集 |
 | Bessel 函数 I₀ | 各模块 `Module0.h` 中的 `bessel_i0()` | Boost `cyl_bessel_i` | Taylor 级数展开，精度到机器 epsilon |
 
+> **解压 third_party.zip**：第三方库已打包为 `third_party.zip`，编译前需先解压：
+> ```bash
+> unzip third_party.zip
+> # 或
+> python -c "import zipfile; zipfile.ZipFile('third_party.zip').extractall('.')"
+> ```
+
 ### Eigen 3.4.0 (header-only)
 
-Eigen 是纯头文件库，已包含在 `third_party/eigen/` 中，**无需编译**，所有平台直接可用。
+Eigen 是纯头文件库，解压后在 `third_party/eigen/` 中，**无需编译**，所有平台直接可用。
 
 ### FFTW 3.3.10
 
-FFTW 是平台相关的，必须**在目标平台上重新编译**。
+FFTW 是平台相关的，必须**在目标平台上重新编译**。解压 `third_party.zip` 后源码在 `third_party/fftw-3.3.10/`。
 
 #### macOS (AppleClang)
 
 ```bash
 cd signal_processing_system/third_party
 
-# 下载源码(如已有源码可跳过)
-curl -O https://www.fftw.org/fftw-3.3.10.tar.gz
-tar xzf fftw-3.3.10.tar.gz
-
+# 源码已包含在 third_party.zip 中，无需下载
 # 编译安装到本地 fftw-install/
 rm -rf fftw-install
 mkdir -p fftw-install
@@ -80,8 +81,7 @@ cd ..
 ```bash
 cd signal_processing_system/third_party
 
-curl -O https://www.fftw.org/fftw-3.3.10.tar.gz
-tar xzf fftw-3.3.10.tar.gz
+# 源码已包含在 third_party.zip 中，无需下载
 
 rm -rf fftw-install
 mkdir -p fftw-install
@@ -101,6 +101,7 @@ cd ..
 vcpkg install fftw3:x64-windows-static
 
 # 方式2: 手动编译(在VS Developer Command Prompt中)
+# 先解压 third_party.zip
 cd third_party\fftw-3.3.10
 nmake /f Makefile.win32 lib
 ```
@@ -319,7 +320,7 @@ RealLabel=1 | 识别=1 (ISDJ/ISRJ/ISCJ) | 正确=100/100 | JSR干扰抑制比=18
 
 ### Q: CMake报错找不到Eigen
 
-确保 `third_party/eigen/Eigen/Dense` 文件存在。如使用系统安装的Eigen，检查路径：
+确保已解压 `third_party.zip`，且 `third_party/eigen/Eigen/Dense` 文件存在。如使用系统安装的Eigen，检查路径：
 ```bash
 ls /opt/homebrew/include/eigen3/Eigen/Dense   # macOS
 ls /usr/include/eigen3/Eigen/Dense             # Linux
@@ -327,7 +328,7 @@ ls /usr/include/eigen3/Eigen/Dense             # Linux
 
 ### Q: CMake报错找不到FFTW
 
-确保 `third_party/fftw-install/lib/libfftw3.a` 存在。检查编译时是否使用了正确的 `--prefix` 路径。
+确保已解压 `third_party.zip` 并完成 FFTW 编译（见第一步），且 `third_party/fftw-install/lib/libfftw3.a` 存在。
 
 ### Q: macOS下OpenMP不可用
 
@@ -376,6 +377,11 @@ for mod in 01_waveform_generation 02_jamming_generation 03_jamming_detection_sup
         exit 1
     fi
 done
+
+if [ ! -d "$PROJECT_DIR/third_party" ]; then
+    echo "错误: third_party/ 目录不存在，请先解压 third_party.zip"
+    exit 1
+fi
 
 echo "=== 1. 编译FFTW ==="
 cd third_party
@@ -441,7 +447,7 @@ cd 04_GUI_signal_processing && pip install -r requirements.txt && python app.py
 
 ### Windows 一键打包为 exe
 
-> **注意**：打包前需先解压 4 个 C++ 模块的加密 zip 包（密码：`xidian_LIJINGHENG`），使 C++ 源码目录存在。
+> **注意**：打包前需先解压 4 个 C++ 模块的加密 zip 包（密码：`xidian_LIJINGHENG`）和 `third_party.zip`，使 C++ 源码目录和第三方库目录存在。
 
 ```bash
 # 先构建 4 个 C++ 静态库
@@ -482,6 +488,7 @@ cd 04_GUI_signal_processing && scripts\build.bat
 
 ### GUI 构建前置条件
 
+- `third_party.zip` 已解压（`third_party/` 目录存在，含 Eigen + FFTW）
 - 对应模块的 C++ 源码已解压（解压加密 zip 包，密码：`xidian_LIJINGHENG`）
 - 对应模块的 C++ 静态库已构建完成
 - Python 3.13+

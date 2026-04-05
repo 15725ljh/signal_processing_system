@@ -117,7 +117,7 @@
 
 - macOS + Xcode Command Line Tools（`xcode-select --install`）
 - Python 3.13+
-- `../third_party/` 存在（包含 eigen、fftw-install）
+- `../third_party/` 存在（解压 `third_party.zip`，包含 eigen、fftw-install）
 - **C++ 源码已从仓库移除**，`lib/` 目录中已包含预编译的 `.pyd/.so` 文件，可直接运行 GUI。如需重新编译静态库，需先解压对应的加密 zip 备份（密码见 `docs/BUILD_GUIDE.md`）恢复 C++ 源码。
 - 模块02静态库已构建（需先恢复 C++ 源码）：
   ```bash

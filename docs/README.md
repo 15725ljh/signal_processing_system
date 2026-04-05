@@ -82,10 +82,7 @@ signal_processing_system/
 │   ├── 02_jamming_generation.md
 │   ├── 03_jamming_detection_suppression.md
 │   └── 04_signal_processing.md
-├── third_party/                # 本地第三方库
-│   ├── nlohmann/json.hpp       # 自实现迷你JSON解析器(~215行)
-│   ├── eigen/                  # Eigen 3.4.0 (header-only)
-│   └── fftw-install/           # FFTW 3.3.10 (需编译)
+├── third_party.zip             # 第三方库备份 (Eigen + FFTW + mini JSON, 解压后为 third_party/)
 ├── cmake/                      # CMake 模块 (FindLibraries.cmake)
 ├── 01_waveform_generation.zip     # 模块1 C++ 源码加密备份
 ├── 02_jamming_generation.zip      # 模块2 C++ 源码加密备份

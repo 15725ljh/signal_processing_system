@@ -78,12 +78,12 @@ Module 03 (outputs 6 files)  ←→  Completely independent (no file exchange)
 
 ## Key Dependencies
 
-Located in `third_party/`: Eigen 3.4.0 (header-only), FFTW 3.3.10 (compiled), mini JSON parser (`nlohmann/json.hpp`, ~215 lines, drop-in replacement). Library detection in `cmake/FindLibraries.cmake`: `third_party/xxx-install/` → `/opt/homebrew/` → `/usr/local/` → env vars.
+Located in `third_party.zip` (extract to `third_party/` before building): Eigen 3.4.0 (header-only), FFTW 3.3.10 (source + compiled), mini JSON parser (`nlohmann/json.hpp`, ~215 lines, drop-in replacement). Library detection in `cmake/FindLibraries.cmake`: `third_party/xxx-install/` → `/opt/homebrew/` → `/usr/local/` → env vars.
 
 ### Replaced Dependencies
 
 - **Boost** (was `boost_math_tr1` for `cyl_bessel_i`) → Self-implemented `bessel_i0()` Taylor series in `Module0.h` (verified to machine epsilon accuracy for x ∈ [0, 40])
-- **nlohmann/json** (was 24765 lines) → Mini JSON parser (~215 lines) at `third_party/nlohmann/json.hpp`, maintaining `nlohmann::json` namespace API compatibility
+- **nlohmann/json** (was 24765 lines) → Mini JSON parser (~215 lines) at `third_party/nlohmann/json.hpp` (in `third_party.zip`), maintaining `nlohmann::json` namespace API compatibility
 
 ## Code Conventions
 

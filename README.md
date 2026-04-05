@@ -116,10 +116,7 @@ signal_processing_system/
 ├── config.json                 # 外部参数配置文件(所有模块共享)
 ├── CMakeLists.txt              # C++ 顶层构建配置
 ├── build_all.bat               # 一键构建全部 4 个 GUI exe
-├── third_party/
-│   ├── nlohmann/json.hpp       # 自实现迷你JSON解析器(~215行)
-│   ├── eigen/                  # Eigen 3.4.0 (header-only)
-│   └── fftw-install/           # FFTW 3.3.10 (需编译)
+├── third_party.zip             # 第三方库备份 (Eigen + FFTW + mini JSON, 解压后为 third_party/)
 ├── cmake/                      # CMake 模块 (FindLibraries.cmake)
 ├── 01_GUI_waveform/               # PySide6 GUI (波形生成, 链接 libwaveform_core.a)
 ├── 02_GUI_jamming/                # PySide6 GUI (干扰生成, 链接 libjamming_core.a)
