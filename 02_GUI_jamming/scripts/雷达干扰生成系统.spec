@@ -16,7 +16,7 @@ import glob
 GUI_ROOT = SPECPATH + '/..'
 
 # 自动查找 .so 文件名
-cpp_module = glob.glob(GUI_ROOT + '/lib/jamming_cpp*.so')
+cpp_module = glob.glob(GUI_ROOT + '/jamming_cpp*.so')
 if not cpp_module:
     print("[错误] 未找到 jamming_cpp*.so，请先编译 C++ 绑定")
     print("       bash scripts/build.sh cpp")

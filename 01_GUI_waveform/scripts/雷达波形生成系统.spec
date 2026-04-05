@@ -16,7 +16,7 @@ import glob
 GUI_ROOT = SPECPATH + '/..'
 
 # 自动查找 .so 文件名
-cpp_module = glob.glob(GUI_ROOT + '/lib/waveform_cpp*.so')
+cpp_module = glob.glob(GUI_ROOT + '/waveform_cpp*.so')
 if not cpp_module:
     print("[错误] 未找到 waveform_cpp*.so，请先编译 C++ 绑定")
     print("       bash scripts/build.sh cpp")

@@ -5,7 +5,7 @@ GUI_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$GUI_ROOT"
 
 PY="./venv/bin/python3"
-THIRD_PARTY="../../third_party"
+THIRD_PARTY="../third_party"
 
 usage() {
     echo "用法: bash scripts/build.sh [命令]"
