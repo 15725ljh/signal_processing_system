@@ -1,6 +1,12 @@
 # Dependencies (managed as zip backup)
 third_party/
 
+# C++ source (managed as encrypted zip backup)
+01_waveform_generation/
+02_jamming_generation/
+03_jamming_detection_suppression/
+04_signal_processing/
+
 # Build
 build/
 cmake-build-*/
