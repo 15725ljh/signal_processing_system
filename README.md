@@ -8,7 +8,7 @@
 [![Framework](https://img.shields.io/badge/CMake-3.14+-green.svg)](https://cmake.org/)
 [![GUI](https://img.shields.io/badge/GUI-PySide6-orange.svg)](https://doc.qt.io/qtforpython-6/)
 [![Platform](https://img.shields.io/badge/Platform-Windows_x64-0078D4.svg)](https://www.microsoft.com/windows)
-[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![License](https://img.shields.io/badge/License-MIT-yellow.svg)]()
 
 </div>
 
@@ -55,8 +55,8 @@
 
 - **高精度信号模型** — 采用 `frac(x)` 分数部分提取技术，避免 `fc·t ≈ 10⁶` 时的浮点精度丢失
 - **热配置** — 修改 `config.json` 即时生效，支持 `//` 和 `#` 行注释
-- **级联处理** — 模块间通过 `.dat` 文件传递数据，模块 02 支持 10 种干扰的级联叠加
-- **Windows 原生** — 针对 Windows x64 编译，内置 FFTW 源码，MSVC/MinGW 工具链
+- **级联处理** — C++ 模块间通过 `.dat` 文件传递数据，模块 02 支持 10 种干扰的级联叠加；GUI 通过 pybind11 在内存中传递 numpy 数组
+- **Windows 原生** — 针对 Windows x64 编译，内置 FFTW 源码，MSVC/MinGW 工具链，支持 PyInstaller 单文件 exe 打包
 - **GUI 界面** — 四个独立 PySide6 桌面应用：波形生成 + 干扰生成 + 干扰识别 + 信号处理，pybind11 直调 C++ 引擎，支持 PyInstaller 打包为单文件 exe
 - **轻量依赖** — 仅依赖 Eigen 和 FFTW 两个第三方库，JSON 解析和 Bessel 函数为自实现
 
@@ -114,10 +114,13 @@ C++ 源码已从仓库移除，备份为加密 zip 文件。解压后按 `docs/B
 ```
 signal_processing_system/
 ├── config.json                 # 外部参数配置文件(所有模块共享)
+├── CMakeLists.txt              # C++ 顶层构建配置
+├── build_all.bat               # 一键构建全部 4 个 GUI exe
 ├── third_party/
 │   ├── nlohmann/json.hpp       # 自实现迷你JSON解析器(~215行)
 │   ├── eigen/                  # Eigen 3.4.0 (header-only)
 │   └── fftw-install/           # FFTW 3.3.10 (需编译)
+├── cmake/                      # CMake 模块 (FindLibraries.cmake)
 ├── 01_GUI_waveform/               # PySide6 GUI (波形生成, 链接 libwaveform_core.a)
 ├── 02_GUI_jamming/                # PySide6 GUI (干扰生成, 链接 libjamming_core.a)
 ├── 03_GUI_detection/              # PySide6 GUI (干扰识别, 链接 libdetection_core.a)
@@ -126,8 +129,8 @@ signal_processing_system/
 ├── 02_jamming_generation.zip      # 模块2 C++ 源码备份 (加密)
 ├── 03_jamming_detection_suppression.zip  # 模块3 C++ 源码备份 (加密)
 ├── 04_signal_processing.zip       # 模块4 C++ 源码备份 (加密)
-├── build_all.bat               # 一键构建全部 4 个 GUI exe
 ├── docs/                       # 统一文档目录
+├── build/                      # C++ 构建输出目录
 └── output/                     # 运行输出目录
 ```
 
@@ -147,4 +150,4 @@ signal_processing_system/
 
 ## License
 
-This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License.

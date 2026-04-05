@@ -20,7 +20,9 @@
 │   ├── build.bat                   # Windows 一键构建脚本
 │   ├── setup_cython.py             # Cython 编译配置 (备用)
 │   ├── 雷达干扰生成系统.spec         # PyInstaller macOS 打包配置
-│   └── 雷达干扰生成系统_win.spec    # PyInstaller Windows 打包配置
+│   ├── 雷达干扰生成系统_win.spec    # PyInstaller Windows 打包配置 (单文件)
+│   ├── build_win.spec               # PyInstaller 目录模式配置 (旧版)
+│   └── build_ascii.bat              # ASCII 编码构建脚本 (旧版)
 │
 ├── ui/                             # PySide6 界面
 │   ├── main_window.py              # 主窗口（含 C++ 调用逻辑、Win32 任务栏图标设置）
@@ -100,9 +102,10 @@
 
 ## 配置
 
-02_GUI_jamming 读取项目根目录的 `../config.json`，使用 `system.*` 和 `jamming.*` 配置节。
+02_GUI_jamming 读取项目根目录的 `config.json`，使用 `system.*` 和 `jamming.*` 配置节。
 参数修改后点击"运行"即时生效。
 也支持通过命令行参数指定配置路径：`python app.py /path/to/config.json`。
+配置搜索顺序：环境变量 `SPS_CONFIG` → 向上搜索 config.json（最多10层）→ `~/.config/sps/config.json`。
 
 ---
 
@@ -212,12 +215,13 @@ venv\Scripts\activate
 pyinstaller --clean --noconfirm scripts\雷达干扰生成系统_win.spec
 ```
 
-输出在 `dist\雷达干扰生成系统\雷达干扰生成系统.exe`。
+输出在 `dist\雷达干扰生成系统.exe`（单文件模式）。
 
 ### 部署
 
-将整个 `dist\雷达干扰生成系统\` 文件夹拷贝到目标机器即可。
-- 将 `config.json` 放在 exe 的**上级目录**
+将 `dist\雷达干扰生成系统.exe` 单文件拷贝到目标机器即可运行。
+- 将 `config.json` 放在 exe 上两级目录
+- 或通过菜单 **文件 → 加载配置...** 手动导入
 - 或设置环境变量 `SPS_CONFIG` 指向 config.json
 
 ---
@@ -242,6 +246,6 @@ ui/*.py + assets/ ── PyInstaller ──→ 雷达干扰生成系统.app (mac
 |------|-------|---------|
 | C++ 绑定产物 | `jamming_cpp.cpython-314-darwin.so` | `jamming_cpp.pyd` |
 | 打包 spec | `雷达干扰生成系统.spec` | `雷达干扰生成系统_win.spec` |
-| 打包输出 | `dist/雷达干扰生成系统.app` | `dist/雷达干扰生成系统.exe` (单文件) |
+| 打包输出 | `dist/雷达干扰生成系统.app` | `dist/雷达干扰生成系统.exe` (单文件, ~90MB) |
 | 运行时 DLL | 不需要 | 需要 MinGW UCRT64 (libgcc/libstdc++/libwinpthread) + FFTW3 |
 | 任务栏图标 | 原生支持 | 需 Win32 API (SetClassLongPtrW + QTimer.singleShot) |

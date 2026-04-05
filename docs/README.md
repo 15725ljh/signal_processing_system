@@ -69,6 +69,8 @@ cd 04_GUI_signal_processing && pip install -r requirements.txt && python app.py
 ```
 signal_processing_system/
 ├── config.json                 # 外部参数配置文件(含详细注释)
+├── CMakeLists.txt              # C++ 顶层构建配置
+├── build_all.bat               # 一键构建全部 4 个 GUI exe
 ├── docs/                       # 统一文档目录
 │   ├── README.md               # 项目概述(本文件)
 │   ├── BUILD_GUIDE.md          # 跨平台编译运行手册
@@ -84,6 +86,7 @@ signal_processing_system/
 │   ├── nlohmann/json.hpp       # 自实现迷你JSON解析器(~215行)
 │   ├── eigen/                  # Eigen 3.4.0 (header-only)
 │   └── fftw-install/           # FFTW 3.3.10 (需编译)
+├── cmake/                      # CMake 模块 (FindLibraries.cmake)
 ├── 01_waveform_generation.zip     # 模块1 C++ 源码加密备份
 ├── 02_jamming_generation.zip      # 模块2 C++ 源码加密备份
 ├── 03_jamming_detection_suppression.zip  # 模块3 C++ 源码加密备份
@@ -92,6 +95,7 @@ signal_processing_system/
 ├── 02_GUI_jamming/                # PySide6 GUI (干扰生成, 链接 libjamming_core.a)
 ├── 03_GUI_detection/              # PySide6 GUI (干扰识别, 链接 libdetection_core.a)
 ├── 04_GUI_signal_processing/      # PySide6 GUI (信号处理, 链接 libsignal_processing_core.a + libwaveform_core.a)
+├── build/                      # C++ 构建输出目录
 └── output/                     # 统一输出目录
 ```
 

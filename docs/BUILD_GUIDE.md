@@ -15,11 +15,15 @@
 ```
 signal_processing_system/
 ├── config.json                     # 外部参数配置文件(所有模块共享)
+├── CMakeLists.txt                  # C++ 顶层构建配置
+├── build_all.bat                   # 一键构建全部 4 个 GUI exe
 ├── docs/                           # 统一文档目录
 ├── third_party/                    # 本地第三方库
 │   ├── nlohmann/json.hpp           # 自实现迷你JSON解析器(~215行, 已包含)
 │   ├── eigen/                      # Eigen 3.4.0 (header-only, 已包含)
 │   └── fftw-install/               # FFTW 3.3.10 (需编译)
+├── cmake/                          # CMake 模块 (FindLibraries.cmake)
+├── build/                          # C++ 构建输出目录
 ├── output/                         # 运行输出目录(运行程序后生成)
 ├── 01_waveform_generation.zip      # 模块1加密备份 (密码: xidian_LIJINGHENG)
 ├── 02_jamming_generation.zip       # 模块2加密备份
@@ -460,7 +464,7 @@ cd 03_GUI_detection && scripts\build.bat
 cd 04_GUI_signal_processing && scripts\build.bat
 ```
 
-打包产物位于各 `dist/` 目录下的单文件 exe，可直接拷贝到任意 Windows 机器运行。
+打包产物位于各 `dist/` 目录下的单文件 exe（如 `dist/雷达波形生成系统.exe`），可直接拷贝到任意 Windows 机器运行。
 `config.json` 需放在 exe 上两级目录（项目根目录），或通过菜单 **文件 → 加载配置...** 手动导入。
 
 ### C++ 源码分发
