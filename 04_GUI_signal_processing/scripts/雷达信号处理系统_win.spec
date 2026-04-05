@@ -50,7 +50,7 @@ a = Analysis(
     runtime_hooks=[],
     excludes=[
         'tkinter',
-        'IPython', 'jupyter', 'notebook', 'matplotlib',
+        'IPython', 'jupyter', 'notebook',
         'pandas', 'flask', 'django', 'pytest',
         'lib2to3', 'setuptools', 'pip',
     ],
