@@ -1,3 +1,6 @@
+# Dependencies (managed as zip backup)
+third_party/
+
 # Build
 build/
 cmake-build-*/
