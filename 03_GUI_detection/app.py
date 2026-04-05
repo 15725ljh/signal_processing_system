@@ -40,37 +40,12 @@ def main():
         except Exception:
             pass
 
-    # 从外部文件加载图标
+    # 加载应用图标
     _icon = QIcon()
     try:
-        _b64_path = os.path.join(_assets_dir(), 'icon_b64.txt')
-        with open(_b64_path, 'r', encoding='utf-8') as _f:
-            _icon_b64 = _f.read().strip()
-        _png = _b64.b64decode(_icon_b64)
-        _pm = QPixmap()
-        _pm.loadFromData(_png)
-        if not _pm.isNull():
-            from PySide6.QtGui import QPainter, QFont, QColor
-            from PySide6.QtCore import QRectF
-            for _s in [16, 24, 32, 48, 64, 128, 256]:
-                _sp = _pm.scaled(_s, _s, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
-                _bsz = max(_s * 1.5, 18)
-                _cx = _s - _bsz * 0.55
-                _cy = _s - _bsz * 0.55
-                _p = QPainter(_sp)
-                _p.setRenderHint(QPainter.RenderHint.Antialiasing)
-                _bc = QColor(Qt.GlobalColor.green)
-                _bc.setAlpha(210)
-                _p.setBrush(_bc)
-                _p.setPen(Qt.PenStyle.NoPen)
-                _p.drawEllipse(QRectF(_cx - _bsz/2, _cy - _bsz/2, _bsz, _bsz))
-                _f = QFont("Arial", max(int(_bsz * 0.48), 5))
-                _f.setBold(True)
-                _p.setFont(_f)
-                _p.setPen(QColor(255, 255, 255))
-                _p.drawText(QRectF(_cx - _bsz/2, _cy - _bsz/2, _bsz, _bsz), Qt.AlignmentFlag.AlignCenter, "03")
-                _p.end()
-                _icon.addPixmap(_sp)
+        _png_path = os.path.join(_assets_dir(), 'app_icon.png')
+        if os.path.exists(_png_path):
+            _icon = QIcon(_png_path)
             app.setWindowIcon(_icon)
     except Exception:
         pass

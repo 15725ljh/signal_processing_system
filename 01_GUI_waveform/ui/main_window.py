@@ -125,7 +125,7 @@ class MainWindow(QMainWindow):
     def __init__(self, config_path=None):
         super().__init__()
         self.setWindowTitle("雷达波形生成系统 - 模块01")
-        icon_path = os.path.join(_assets_dir(), 'app_icon.ico')
+        icon_path = os.path.join(_assets_dir(), 'app_icon.png')
         if os.path.exists(icon_path):
             self.setWindowIcon(QIcon(icon_path))
         self.setMinimumSize(1280, 800)
@@ -599,7 +599,7 @@ class MainWindow(QMainWindow):
                 pass
 
             hwnd = int(self.winId())
-            ico_path = os.path.join(_assets_dir(), 'app_icon.ico')
+            ico_path = os.path.join(_assets_dir(), 'app_icon.png')
             if not os.path.exists(ico_path):
                 return
             win_path = os.path.abspath(ico_path).replace('/', '\\')
