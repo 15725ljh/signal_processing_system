@@ -35,6 +35,7 @@ cmd_cpp() {
     echo "[1/3] 编译 C++ 绑定 (jamming_cpp)..."
     PYBIND11_INC=$($PY -c "import pybind11; print(pybind11.get_include())")
     PYTHON_INC=$($PY -c "import sysconfig; print(sysconfig.get_path('include'))")
+    PY_EXT_SUFFIX=$($PY -c "import sysconfig; print(sysconfig.get_config_var('EXT_SUFFIX'))")
     MODULE02_INC="$PROJECT_ROOT/02_jamming_generation/include"
     MODULE02_LIB="$PROJECT_ROOT/02_jamming_generation/build/libjamming_core.a"
     BINDING_SRC="$PROJECT_ROOT/02_jamming_generation/bindings/jamming_bind.cpp"
@@ -55,7 +56,7 @@ cmd_cpp() {
         "$BINDING_SRC" \
         "$MODULE02_LIB" \
         -L"$FFTW_LIB" -lfftw3 \
-        -o jamming_cpp.cpython-314-darwin.so
+        -o "jamming_cpp${PY_EXT_SUFFIX}"
     echo "[完成] jamming_cpp.so (linked with libjamming_core.a + libfftw3)"
 }
 

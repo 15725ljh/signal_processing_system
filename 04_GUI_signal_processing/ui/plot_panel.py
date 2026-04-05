@@ -1415,12 +1415,19 @@ class PlotPanel(QWidget):
             ext = path.rsplit(".", 1)[-1].lower() if "." in path else "png"
 
             if ext == "svg":
-                from pyqtgraph.exporters import SVGExporter
+                from PySide6.QtSvg import QSvgGenerator
+                from PySide6.QtGui import QPainter
                 if isinstance(widget, (ImagePlotWidget, RDMapPlotWidget, ResultSummaryPlot, STFTPlotWidget)):
-                    exporter = SVGExporter(widget._plot)
+                    plot_item = widget._plot
                 else:
-                    exporter = SVGExporter(widget._pw.plotItem)
-                exporter.export(path)
+                    plot_item = widget._pw.plotItem
+                gen = QSvgGenerator()
+                gen.setFileName(path)
+                gen.setSize(plot_item.width(), plot_item.height())
+                gen.setViewBox(plot_item.viewportRect())
+                painter = QPainter(gen)
+                plot_item.render(painter)
+                painter.end()
             else:
                 from pyqtgraph.exporters import ImageExporter
                 if isinstance(widget, (ImagePlotWidget, RDMapPlotWidget, ResultSummaryPlot, STFTPlotWidget)):

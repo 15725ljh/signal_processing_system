@@ -1,13 +1,13 @@
 <div align="center">
 
-# Radar Signal Processing System (Windows)
+# Radar Signal Processing System
 
 **雷达信号处理系统 — 波形生成 · 干扰模拟 · 检测抑制 · 信号处理**
 
 [![Language](https://img.shields.io/badge/C++-17-blue.svg)](https://isocpp.org/std/the-standard)
 [![Framework](https://img.shields.io/badge/CMake-3.14+-green.svg)](https://cmake.org/)
 [![GUI](https://img.shields.io/badge/GUI-PySide6-orange.svg)](https://doc.qt.io/qtforpython-6/)
-[![Platform](https://img.shields.io/badge/Platform-Windows_x64-0078D4.svg)](https://www.microsoft.com/windows)
+[![Platform](https://img.shields.io/badge/Platform-macOS_arm64_Aarch64-333333.svg)](https://www.apple.com/macos)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)]()
 
 </div>
@@ -57,7 +57,8 @@
 - **热配置** — 修改 `config.json` 即时生效，支持 `//` 和 `#` 行注释
 - **级联处理** — C++ 模块间通过 `.dat` 文件传递数据，模块 02 支持 10 种干扰的级联叠加；GUI 通过 pybind11 在内存中传递 numpy 数组
 - **Windows 原生** — 针对 Windows x64 编译，内置 FFTW 源码，MSVC/MinGW 工具链，支持 PyInstaller 单文件 exe 打包
-- **GUI 界面** — 四个独立 PySide6 桌面应用：波形生成 + 干扰生成 + 干扰识别 + 信号处理，pybind11 直调 C++ 引擎，支持 PyInstaller 打包为单文件 exe
+- **macOS 支持** — 支持 macOS arm64 (Apple Silicon)，clang++ 工具链，PyInstaller .app 打包
+- **GUI 界面** — 四个独立 PySide6 桌面应用：波形生成 + 干扰生成 + 干扰识别 + 信号处理，pybind11 直调 C++ 引擎，支持 PyInstaller 打包为单文件 exe / .app
 - **轻量依赖** — 仅依赖 Eigen 和 FFTW 两个第三方库，JSON 解析和 Bessel 函数为自实现
 
 ## 快速开始
@@ -66,7 +67,7 @@
 
 ```bash
 # 克隆仓库
-git clone -b feature/all-guis-windows https://github.com/15725ljh/signal_processing_system.git
+git clone https://github.com/15725ljh/signal_processing_system.git
 cd signal_processing_system
 
 # 运行 GUI (需要 Python 3.13+)
@@ -74,6 +75,16 @@ cd 01_GUI_waveform && pip install -r requirements.txt && python app.py
 cd 02_GUI_jamming && pip install -r requirements.txt && python app.py
 cd 03_GUI_detection && pip install -r requirements.txt && python app.py
 cd 04_GUI_signal_processing && pip install -r requirements.txt && python app.py
+```
+
+### macOS 一键构建
+
+```bash
+# 构建全部 4 个 GUI (.app)
+bash build_all.sh
+
+# 或单独构建
+cd 01_GUI_waveform && bash scripts/build.sh all
 ```
 
 ### C++ 命令行
@@ -115,7 +126,8 @@ C++ 源码已从仓库移除，备份为加密 zip 文件。解压后按 `docs/B
 signal_processing_system/
 ├── config.json                 # 外部参数配置文件(所有模块共享)
 ├── CMakeLists.txt              # C++ 顶层构建配置
-├── build_all.bat               # 一键构建全部 4 个 GUI exe
+├── build_all.bat               # Windows: 一键构建全部 4 个 GUI exe
+├── build_all.sh                # macOS: 一键构建全部 4 个 GUI .app
 ├── third_party.zip             # 第三方库备份 (Eigen + FFTW + mini JSON, 解压后为 third_party/)
 ├── cmake/                      # CMake 模块 (FindLibraries.cmake)
 ├── 01_GUI_waveform/               # PySide6 GUI (波形生成, 链接 libwaveform_core.a)

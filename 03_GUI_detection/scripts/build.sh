@@ -35,6 +35,7 @@ cmd_cpp() {
     echo "[1/3] 编译 C++ 绑定 (detection_cpp)..."
     PYBIND11_INC=$($PY -c "import pybind11; print(pybind11.get_include())")
     PYTHON_INC=$($PY -c "import sysconfig; print(sysconfig.get_path('include'))")
+    PY_EXT_SUFFIX=$($PY -c "import sysconfig; print(sysconfig.get_config_var('EXT_SUFFIX'))")
     MODULE03_INC="$PROJECT_ROOT/03_jamming_detection_suppression/include"
     MODULE03_LIB="$PROJECT_ROOT/03_jamming_detection_suppression/build/libdetection_core.a"
     BINDING_SRC="$PROJECT_ROOT/03_jamming_detection_suppression/bindings/detection_bind.cpp"
@@ -57,7 +58,7 @@ cmd_cpp() {
         "$BINDING_SRC" \
         "$MODULE03_LIB" \
         -L"$FFTW_LIB" -lfftw3 \
-        -o detection_cpp.cpython-314-darwin.so
+        -o "detection_cpp${PY_EXT_SUFFIX}"
     echo "[完成] detection_cpp.so (linked with libdetection_core.a + libfftw3)"
 }
 

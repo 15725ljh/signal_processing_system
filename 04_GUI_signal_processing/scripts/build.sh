@@ -35,6 +35,7 @@ cmd_cpp() {
     echo "[1/3] 编译 C++ 绑定 (signal_processing_cpp)..."
     PYBIND11_INC=$($PY -c "import pybind11; print(pybind11.get_include())")
     PYTHON_INC=$($PY -c "import sysconfig; print(sysconfig.get_path('include'))")
+    PY_EXT_SUFFIX=$($PY -c "import sysconfig; print(sysconfig.get_config_var('EXT_SUFFIX'))")
     MODULE04_INC="$PROJECT_ROOT/04_signal_processing/include"
     MODULE01_INC="$PROJECT_ROOT/01_waveform_generation/include"
     MODULE04_LIB="$PROJECT_ROOT/04_signal_processing/build/libsignal_processing_core.a"
@@ -67,7 +68,7 @@ cmd_cpp() {
         "$BINDING_SRC" \
         "$MODULE04_LIB" "$MODULE01_LIB" \
         -L"$FFTW_LIB" -lfftw3 \
-        -o lib/signal_processing_cpp.cpython-314-darwin.so
+        -o "lib/signal_processing_cpp${PY_EXT_SUFFIX}"
     echo "[完成] lib/signal_processing_cpp.so (linked with libsignal_processing_core.a + libwaveform_core.a + libfftw3)"
 }
 

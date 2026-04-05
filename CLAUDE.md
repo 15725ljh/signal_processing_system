@@ -35,7 +35,21 @@ Output: `dist/雷达波形生成系统.exe` (single file, ~90MB).
 
 Alternatively, build all 4 GUIs at once from the project root:
 ```bash
-build_all.bat
+build_all.bat    # Windows
+build_all.sh     # macOS
+```
+
+### macOS .app packaging
+
+Each GUI has a macOS PyInstaller spec (`scripts/雷达*.spec`, without `_win` suffix):
+```bash
+cd 01_GUI_waveform && bash scripts/build.sh all
+```
+Output: `dist/雷达波形生成系统.app` (directory bundle).
+
+Build all 4 GUIs from project root:
+```bash
+bash build_all.sh
 ```
 
 ## Architecture

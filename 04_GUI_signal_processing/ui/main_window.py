@@ -318,6 +318,8 @@ class MainWindow(QMainWindow):
     def _get_config_home(self):
         if self._is_frozen_app():
             exe_dir = os.path.dirname(sys.executable)
+            if sys.platform == 'darwin':
+                return os.path.dirname(os.path.dirname(os.path.dirname(exe_dir)))
             return os.path.dirname(os.path.dirname(exe_dir))
         return os.path.dirname(os.path.dirname(os.path.abspath(sys.argv[0])))
 
@@ -328,7 +330,10 @@ class MainWindow(QMainWindow):
 
         if self._is_frozen_app():
             exe_dir = os.path.dirname(sys.executable)
-            start_dir = os.path.dirname(os.path.dirname(exe_dir))
+            if sys.platform == 'darwin':
+                start_dir = os.path.dirname(os.path.dirname(os.path.dirname(exe_dir)))
+            else:
+                start_dir = os.path.dirname(os.path.dirname(exe_dir))
         else:
             start_dir = os.path.dirname(os.path.dirname(os.path.abspath(sys.argv[0])))
 

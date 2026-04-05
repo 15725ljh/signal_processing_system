@@ -46,5 +46,4 @@ desktop.ini
 # Claude Code local overrides (secrets, personal settings)
 .claude/settings.local.json
 assets_preview/
-*.spec
 !.claude/settings.json

@@ -34,6 +34,7 @@ cmd_cpp() {
     echo "[1/3] 编译 C++ 绑定..."
     PYBIND11_INC=$($PY -c "import pybind11; print(pybind11.get_include())")
     PYTHON_INC=$($PY -c "import sysconfig; print(sysconfig.get_path('include'))")
+    PY_EXT_SUFFIX=$($PY -c "import sysconfig; print(sysconfig.get_config_var('EXT_SUFFIX'))")
     PROJECT_ROOT="$(cd "$GUI_ROOT/.." && pwd)"
     MODULE01_INC="$PROJECT_ROOT/01_waveform_generation/include"
     MODULE01_LIB="$PROJECT_ROOT/01_waveform_generation/build/libwaveform_core.a"
@@ -51,7 +52,7 @@ cmd_cpp() {
         -I"$MODULE01_INC" \
         "$BINDING_SRC" \
         "$MODULE01_LIB" \
-        -o waveform_cpp.cpython-314-darwin.so
+        -o "waveform_cpp${PY_EXT_SUFFIX}"
     echo "[完成] waveform_cpp.so (linked with 01_waveform_generation/libwaveform_core.a)"
 }
 
