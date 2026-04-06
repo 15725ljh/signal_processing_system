@@ -136,18 +136,9 @@ signal_processing_system/
 | 文档 | 说明 |
 |------|------|
 | [构建指南](docs/BUILD_GUIDE.md) | 编译运行 + GUI 打包手册 |
-| [波形生成 GUI](docs/01_GUI_waveform.md) | 01_GUI_waveform 构建与使用 |
-| [干扰生成 GUI](docs/02_GUI_jamming.md) | 02_GUI_jamming 构建与使用 |
-| [干扰识别 GUI](docs/03_GUI_detection.md) | 03_GUI_detection 构建与使用 |
-| [信号处理 GUI](docs/04_GUI_signal_processing.md) | 04_GUI_signal_processing 构建与使用 |
-| [波形生成](docs/01_waveform_generation.md) | 模块 01 详解 |
-| [干扰生成](docs/02_jamming_generation.md) | 模块 02 详解 |
-| [检测抑制](docs/03_jamming_detection_suppression.md) | 模块 03 详解 |
-| [信号处理](docs/04_signal_processing.md) | 模块 04 详解 |
-| [波形生成 GUI 设计](docs/WAVEFORM_GUI_DESIGN.md) | 01_GUI_waveform 界面文档 |
-| [干扰生成 GUI 设计](docs/JAMMING_GUI_DESIGN.md) | 02_GUI_jamming 界面文档 |
-| [干扰识别 GUI 设计](docs/DETECTION_GUI_DESIGN.md) | 03_GUI_detection 界面文档 |
-| [信号处理 GUI 设计](docs/SIGNAL_PROCESSING_GUI_DESIGN.md) | 04_GUI_signal_processing 界面文档 |
+| [C++ 模块详解](docs/CPP_MODULES.md) | 4 个 C++ 模块的算法与参数 |
+| [GUI 使用指南](docs/GUI_GUIDE.md) | 4 个 GUI 的构建与使用 |
+| [GUI 共享组件](docs/SHARED_COMPONENTS.md) | 共享基础设施与配置参数分区 |
 
 ## License
 

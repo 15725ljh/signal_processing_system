@@ -505,6 +505,7 @@ cd 04_GUI_signal_processing && scripts\build.bat
 | 03_GUI_detection | 时域/频域/信号矩阵/距离像/目标分离/**距离-多普勒**/包络 | 载波去除 + RD 图 (Ka波段) |
 | 04_GUI_signal_processing | 脉冲特性/频域/信号矩阵/**距离-多普勒**/解耦结果/**STFT时频**/结果汇总 | passband 载波去除 STFT |
 
-详细设计文档：
-- [波形生成 GUI 设计](WAVEFORM_GUI_DESIGN.md)
-- [干扰生成 GUI 设计](JAMMING_GUI_DESIGN.md)
+详细文档：
+- [C++ 模块详解](CPP_MODULES.md)
+- [GUI 使用指南](GUI_GUIDE.md)
+- [GUI 共享组件](SHARED_COMPONENTS.md)
