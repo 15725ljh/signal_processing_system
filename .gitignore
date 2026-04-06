@@ -48,3 +48,4 @@ desktop.ini
 assets_preview/
 *.spec
 !.claude/settings.json
+others/
