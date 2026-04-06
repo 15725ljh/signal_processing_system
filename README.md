@@ -136,6 +136,10 @@ signal_processing_system/
 | 文档 | 说明 |
 |------|------|
 | [构建指南](docs/BUILD_GUIDE.md) | 编译运行 + GUI 打包手册 |
+| [波形生成 GUI](docs/01_GUI_waveform.md) | 01_GUI_waveform 构建与使用 |
+| [干扰生成 GUI](docs/02_GUI_jamming.md) | 02_GUI_jamming 构建与使用 |
+| [干扰识别 GUI](docs/03_GUI_detection.md) | 03_GUI_detection 构建与使用 |
+| [信号处理 GUI](docs/04_GUI_signal_processing.md) | 04_GUI_signal_processing 构建与使用 |
 | [波形生成](docs/01_waveform_generation.md) | 模块 01 详解 |
 | [干扰生成](docs/02_jamming_generation.md) | 模块 02 详解 |
 | [检测抑制](docs/03_jamming_detection_suppression.md) | 模块 03 详解 |
