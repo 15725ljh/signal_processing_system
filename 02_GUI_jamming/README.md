@@ -7,7 +7,8 @@
 ```
 02_GUI_jamming/
 ├── app.py                          # 程序入口
-├── requirements.txt                # Python 依赖
+├── requirements.txt                # Python 运行时依赖
+├── requirements-dev.txt            # Python 构建依赖 (pybind11, Cython, PyInstaller)
 │
 ├── lib/                            # 构建产物 (.gitignore 已忽略)
 │   ├── jamming_cpp.pyd             # C++ 绑定 (Windows, pybind11)
@@ -170,7 +171,7 @@ cd 02_GUI_jamming
 python -m venv venv
 venv\Scripts\activate
 pip install -r requirements.txt
-pip install pybind11 pyqtgraph pyinstaller
+pip install -r requirements-dev.txt
 scripts\build.bat
 ```
 

@@ -7,7 +7,8 @@
 ```
 04_GUI_signal_processing/
 ├── app.py                          # 程序入口
-├── requirements.txt                # Python 依赖
+├── requirements.txt                # Python 运行时依赖
+├── requirements-dev.txt            # Python 构建依赖 (pybind11, Cython, PyInstaller)
 │
 ├── lib/                            # 构建产物 (.gitignore 已忽略)
 │   ├── signal_processing_cpp.pyd   # C++ 绑定 (Windows, pybind11)
@@ -108,17 +109,27 @@
 
 ### 前置条件
 
-1. **Python 3.13+**
-2. **MinGW-w64 (GCC/G++)** — 推荐 UCRT runtime 版本
-3. **CMake**
+1. **Python 3.13+** — 从 [python.org](https://www.python.org/downloads/) 下载安装，安装时勾选 "Add Python to PATH"
+2. **MinGW-w64 (GCC/G++)** — 推荐 [winlibs.com](https://winlibs.com/) 下载 UCRT runtime 版本，解压后将 `bin` 目录加入 PATH
+3. **CMake** — 从 [cmake.org](https://cmake.org/download/) 下载安装
 4. **C++ 源码** — 已从仓库移除，`lib/` 目录中已包含预编译的 `.pyd` 文件，可直接运行 GUI。如需重新编译静态库，需先解压对应的加密 zip 备份（密码见 `docs/BUILD_GUIDE.md`）恢复 C++ 源码。注意：模块04同时需要模块01的源码（`libwaveform_core.a`）。
 
-### 一键构建
+验证环境：
+```cmd
+python --version          # 应显示 Python 3.13+
+g++ --version             # 应显示 GCC 版本
+cmake --version           # 应有输出
+```
+
+### 一键构建 (推荐)
 
 ```cmd
 cd 04_GUI_signal_processing
+python -m venv venv
 venv\Scripts\activate
-pyinstaller --clean --noconfirm scripts\雷达信号处理系统_win.spec
+pip install -r requirements.txt
+pip install -r requirements-dev.txt
+scripts\build.bat
 ```
 
 输出在 `dist\雷达信号处理系统.exe`（单文件模式，~90MB）。

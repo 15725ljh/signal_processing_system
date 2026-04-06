@@ -7,7 +7,8 @@
 ```
 01_GUI_waveform/
 ├── app.py                          # 程序入口
-├── requirements.txt                # Python 依赖
+├── requirements.txt                # Python 运行时依赖
+├── requirements-dev.txt            # Python 构建依赖 (pybind11, Cython, PyInstaller)
 │
 ├── lib/                            # 构建产物 (.gitignore 已忽略)
 │   ├── waveform_cpp.pyd            # C++ 绑定 (Windows, pybind11)
@@ -151,7 +152,7 @@ cd 01_GUI_waveform
 python -m venv venv
 venv\Scripts\activate
 pip install -r requirements.txt
-pip install pybind11 pyqtgraph pyinstaller
+pip install -r requirements-dev.txt
 scripts\build.bat
 ```
 
