@@ -20,6 +20,11 @@
 
 ## 系统架构
 
+![System Architecture](docs/images/system_architecture.png)
+
+<details>
+<summary>点击查看文本版架构图</summary>
+
 ```
 ┌─────────────────┐    ┌─────────────────┐
 │   模块 01       │    │   模块 02       │
@@ -50,6 +55,8 @@
          └─────────────────┘    └─────────────────┘
               (独立运行，不依赖其他模块)
 ```
+
+</details>
 
 ## 技术特性
 
@@ -95,6 +102,8 @@ C++ 源码已从仓库移除，备份为加密 zip 文件。解压后按 `docs/B
 
 ## 技术栈
 
+![Technology Stack](docs/images/tech_stack.png)
+
 | 组件 | 技术 | 用途 |
 |------|------|------|
 | 语言 | C++17 | 核心信号处理算法 |
@@ -106,6 +115,8 @@ C++ 源码已从仓库移除，备份为加密 zip 文件。解压后按 `docs/B
 | GUI | PySide6 + pybind11 | 四 GUI 可视化界面 + exe 打包 |
 
 ## 10 种干扰模式
+
+![10 Jamming Modes](docs/images/jamming_modes.png)
 
 | 类型 | 模式 | 缩写 | 原理 |
 |------|------|------|------|
