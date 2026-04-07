@@ -9,7 +9,7 @@ from PySide6.QtWidgets import (
     QStatusBar, QLabel, QWidget, QVBoxLayout, QProgressBar,
 )
 from PySide6.QtCore import Qt, QThread, Signal, QTimer, QSettings
-from PySide6.QtGui import QAction, QKeySequence, QFont, QIcon
+from PySide6.QtGui import QAction, QKeySequence, QFont, QIcon, QPixmap
 
 from ui.theme import LIGHT_STYLE, DARK_STYLE, _assets_dir
 from ui.param_panel import ParamPanel
@@ -558,9 +558,9 @@ class MainWindow(QMainWindow):
 
     def _show_about(self):
         theme_label = "深色" if self._current_theme == "dark" else "浅色"
-        QMessageBox.about(
-            self,
-            "关于",
+        msg = QMessageBox(self)
+        msg.setWindowTitle("关于")
+        msg.setText(
             "雷达波形生成系统\n"
             "模块01: 波形生成\n\n"
             "支持 5 种波形模式 (Case 1~5)\n"
@@ -570,6 +570,10 @@ class MainWindow(QMainWindow):
             "技术栈: PySide6 + pyqtgraph + numpy/scipy\n\n"
             "作者: XDU_LJH",
         )
+        icon_path = os.path.join(_assets_dir(), 'app_icon.png')
+        if os.path.exists(icon_path):
+            msg.setIconPixmap(QPixmap(icon_path))
+        msg.exec()
 
     def _apply_win32_taskbar_icon(self):
         """通过 Win32 API 设置窗口图标, 确保 Windows 11 任务栏正确显示。
